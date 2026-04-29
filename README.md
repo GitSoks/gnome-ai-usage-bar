@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/gnome-ai-usage-bar/main/icons/gemini-symbolic.svg" width="64" alt="AI Usage Bar Logo">
+  <img src="https://raw.githubusercontent.com/GitSoks/gnome-ai-usage-bar/main/icons/gemini-symbolic.svg" width="64" alt="AI Usage Bar Logo">
   <h1>AI Usage Bar</h1>
   <p><b>A GNOME Shell extension that shows your remaining AI quota as a live meter in the top panel.</b></p>
   
@@ -61,7 +61,7 @@ If you want to build from source or use the latest git version:
 
 ```bash
 # Clone into the GNOME extensions directory
-git clone https://github.com/YOUR_GITHUB_USERNAME/gnome-ai-usage-bar.git \
+git clone https://github.com/GitSoks/gnome-ai-usage-bar.git \
     ~/.local/share/gnome-shell/extensions/ai-usage-bar@sokolowski.tech
 
 # Compile the settings schema
@@ -161,4 +161,4 @@ This project is licensed under the **GPLv3** — see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Author
 
-David Sokolowski — [Website/Git](https://git.sokolowski.tech/david) | [GitHub](https://github.com/YOUR_GITHUB_USERNAME)
+David Sokolowski — [Website/Git](https://git.sokolowski.tech/david) | [GitHub](https://github.com/GitSoks)
