@@ -17,7 +17,7 @@ gnome-ai-usage-bar/
 ├── extension.js                 # Indicator + scheduler + provider registry
 ├── prefs.js                     # Adw preferences window
 ├── stylesheet.css               # Panel meter colors, popup styling
-├── install.sh                   # Mirror of llm-text-pro install.sh
+├── install.sh                   # Compile schema, package, install, enable
 ├── lib/
 │   ├── meter.js                 # Custom St.DrawingArea two-bar meter widget
 │   ├── scheduler.js             # Refresh timer + suspend/resume hook
@@ -31,10 +31,18 @@ gnome-ai-usage-bar/
 │       └── opencode.js          # `opencode usage` JSON command
 ├── schemas/
 │   └── org.gnome.shell.extensions.ai-usage-bar.gschema.xml
+├── icons/                       # Symbolic SVGs for each provider + logo
 ├── po/                          # Empty for now; gettext-ready
+├── tests/
+│   ├── test_providers.mjs       # Provider parse() smoke tests (gjs / node)
+│   └── fixtures/                # Saved API/CLI response fixtures per provider
+│       └── <provider>/
 └── docs/
     ├── REQUIREMENTS.md
-    └── IMPLEMENTATION_PLAN.md
+    ├── IMPLEMENTATION_PLAN.md
+    └── screenshots/
+        ├── screenshot-popup.png         # Panel popup with per-provider meters
+        └── screenshot-preferences.png   # Preferences window — Providers page
 ```
 
 **Why split `lib/`?** llm-text-pro is one 1.8k-line file because actions are uniform. Here providers diverge wildly (HTTP vs RPC vs PTY vs file scan). One file per provider is cheaper to read and test than a giant switch.
@@ -159,7 +167,7 @@ Each phase ends with a manual smoke test on GNOME 50 (this machine) and a check 
 
 ## 9. Testing strategy
 
-- **Unit-ish:** Each provider module exposes a `parse()` pure function over fixture strings (saved under `tests/fixtures/<provider>/`). Run via `gjs tests/run.js` — no Jest, no Node, no network.
+- **Unit-ish:** Each provider module exposes a `parse()` pure function over fixture strings (saved under `tests/fixtures/<provider>/`). Run via `node tests/test_providers.mjs` or `gjs tests/test_providers.mjs` — no Jest, no network.
 - **Integration:** A `dev/dev-shell.sh` that runs a nested GNOME Shell session (`dbus-run-session -- gnome-shell --nested --wayland`) with the extension installed.
 - **Manual:** Acceptance criteria 1–6 from REQUIREMENTS.md, walked through before each release.
 
@@ -168,6 +176,7 @@ Each phase ends with a manual smoke test on GNOME 50 (this machine) and a check 
 - Version starts at `1` in `metadata.json`, incremented on every `install.sh` package (matches llm-text-pro convention).
 - Tag releases `v1`, `v2`, … in git; push to `git.sokolowski.tech/david/ai-usage-bar@sokolowski.tech` (TBD).
 - License: GPLv3 (matches llm-text-pro).
+- **Distribution:** Installation is via `install.sh` from the GitHub repository. Submission to the GNOME Extensions website (`extensions.gnome.org`) is planned post-v1 once the extension passes the GNOME review checklist. Do not advertise the store link in the README until the submission is approved.
 
 ## 11. What we are *not* building (re-stated for clarity)
 

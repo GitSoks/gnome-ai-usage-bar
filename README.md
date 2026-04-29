@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/GitSoks/gnome-ai-usage-bar/main/icons/gemini-symbolic.svg" width="64" alt="AI Usage Bar Logo">
+  <img src="icons/logo.svg" width="96" alt="AI Usage Bar Logo">
   <h1>AI Usage Bar</h1>
   <p><b>A GNOME Shell extension that shows your remaining AI quota as a live meter in the top panel.</b></p>
   
@@ -13,6 +13,13 @@ Supports **Claude**, **Gemini**, **Codex (OpenAI)**, **GitHub Copilot**, and **O
 
 Inspired by [codexbar](https://github.com/steipete/codexbar) for macOS.
 
+
+<div align="center">
+  <img src="docs/screenshots/screenshot-popup.png" alt="Panel popup showing per-provider quota meters" width="420">
+  &nbsp;&nbsp;
+</div>
+
+
 ---
 
 ## ✨ Features
@@ -25,8 +32,6 @@ Inspired by [codexbar](https://github.com/steipete/codexbar) for macOS.
 - **Quick Switching**: Switch the active provider directly from the popup without opening preferences.
 - **Smart Refresh**: Automatically refreshes when waking from sleep and optionally polls in the background (1, 2, 5, or 15 mins).
 
-*(Screenshot placeholder - Add a screenshot of the panel and popup here!)*
-<!-- <img src="screenshot.png" alt="AI Usage Bar Screenshot" width="400"> -->
 
 ---
 
@@ -51,13 +56,27 @@ Inspired by [codexbar](https://github.com/steipete/codexbar) for macOS.
 
 ## 🚀 Installation
 
-### From extensions.gnome.org (Recommended)
+### Using the install script (Recommended)
 
-Search for **AI Usage Bar** on the [GNOME Extensions](https://extensions.gnome.org/) website or install it directly from the extension app.
+Clone the repository and run the included `install.sh`:
 
-### Manual Installation
+```bash
+git clone https://github.com/GitSoks/gnome-ai-usage-bar.git
+cd gnome-ai-usage-bar
+bash install.sh
+```
 
-If you want to build from source or use the latest git version:
+The script compiles the GSettings schema, packages the extension, installs it via `gnome-extensions install`, and enables it automatically. On Wayland, if the extension does not appear after installation, log out and back in.
+
+To check for errors after installation:
+
+```bash
+journalctl /usr/bin/gnome-shell --since='1 min ago' -f
+```
+
+### Manual installation
+
+If you prefer to install step by step:
 
 ```bash
 # Clone into the GNOME extensions directory
@@ -132,6 +151,14 @@ opencode  # follow the browser login prompt
 ## 🛠️ Configuration
 
 Open **Preferences** from the popup menu or from the Extensions app to customize your experience.
+
+
+<div align="center">
+  <img src="docs/screenshots/screenshot-preferences.png"
+   alt="Panel popup showing per-provider quota meters" width="320">
+  &nbsp;&nbsp;
+</div>
+
 
 ### Providers Settings
 - **Active provider:** Choose which provider's quota drives the main panel bar and icon.

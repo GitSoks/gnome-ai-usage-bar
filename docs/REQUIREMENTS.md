@@ -135,7 +135,13 @@ Top-to-bottom:
 - **OQ3** — Should we expose a D-Bus interface so other tools (Waybar users, scripts) can read quota? *Decision:* yes for v1.1, name `tech.sokolowski.AIUsageBar`.
 - **OQ4** — Codex RPC protocol stability. *Decision:* treat PTY `/status` parser as the supported path; RPC is best-effort.
 
-## 11. Acceptance criteria (v1)
+## 11. Distribution
+
+- **v1 distribution channel:** GitHub repository only. Users install via `install.sh`.
+- **GNOME Extensions store:** Not yet submitted. Planned post-v1 after the extension passes the GNOME review checklist. README must not reference the store URL until submission is approved.
+- **`install.sh`** must remain functional as the primary installation path even after a store listing exists (developers and testers need it).
+
+## 12. Acceptance criteria (v1)
 
 The extension is shippable when:
 

@@ -1,6 +1,8 @@
 # IDE
 .vscode/
 .idea/
+.claude/
+
 
 # Compiled schemas
 schemas/gschemas.compiled
@@ -11,3 +13,4 @@ coverage/
 # Tarballs
 *.zip
 *.tar.gz
+

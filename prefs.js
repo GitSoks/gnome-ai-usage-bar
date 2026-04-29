@@ -3,19 +3,17 @@
  * Three-page preferences: Providers, Display, About.
  */
 
-import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import Adw from 'gi://Adw';
-import Gtk from 'gi://Gtk';
 import GLib from 'gi://GLib';
-import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
-import Soup from 'gi://Soup';
+import Gtk from 'gi://Gtk';
+import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-import { ClaudeProvider }    from './lib/providers/claude.js';
-import { GeminiProvider }    from './lib/providers/gemini.js';
-import { CodexProvider }     from './lib/providers/codex.js';
-import { CopilotProvider }   from './lib/providers/copilot.js';
-import { OpenCodeProvider }  from './lib/providers/opencode.js';
+import { ClaudeProvider } from './lib/providers/claude.js';
+import { CodexProvider } from './lib/providers/codex.js';
+import { CopilotProvider } from './lib/providers/copilot.js';
+import { GeminiProvider } from './lib/providers/gemini.js';
+import { OpenCodeProvider } from './lib/providers/opencode.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -469,11 +467,15 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
             subtitle: 'Glanceable AI quota meter for the GNOME top panel',
             activatable: false,
         });
-        headerRow.add_prefix(new Gtk.Image({
-            icon_name: 'utilities-terminal-symbolic',
-            pixel_size: 56,
-            valign: Gtk.Align.CENTER,
-        }));
+        const logoPath = `${this.path}/icons/logo-symbolic.svg`;
+        let logoWidget;
+        if (GLib.file_test(logoPath, GLib.FileTest.EXISTS)) {
+            const logoFile = Gio.File.new_for_path(logoPath);
+            logoWidget = new Gtk.Image({ gicon: new Gio.FileIcon({ file: logoFile }), pixel_size: 56, valign: Gtk.Align.CENTER });
+        } else {
+            logoWidget = new Gtk.Image({ icon_name: 'utilities-terminal-symbolic', pixel_size: 56, valign: Gtk.Align.CENTER });
+        }
+        headerRow.add_prefix(logoWidget);
         headerGroup.add(headerRow);
 
         // ── Details ────────────────────────────────────────────────────────────
