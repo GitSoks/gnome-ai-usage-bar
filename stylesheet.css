@@ -1,0 +1,212 @@
+/* AI Usage Bar — stylesheet.css */
+
+/* ── Panel icon (provider logo) ──────────────────────────────────────────────── */
+
+.aib-panel-icon {
+    padding-left: 5px;
+    padding-right: 0px;
+    -st-icon-style: symbolic;
+}
+
+/* ── Panel percentage label ──────────────────────────────────────────────────── */
+
+.aib-panel-pct {
+    font-size: 11px;
+    font-weight: 700;
+    font-family: monospace;
+    padding-left: 5px;
+}
+
+/* ── Provider row icon ───────────────────────────────────────────────────────── */
+
+.aib-provider-icon {
+    margin-right: 8px;
+    -st-icon-style: symbolic;
+}
+
+/* ── Menu header ─────────────────────────────────────────────────────────────── */
+
+.aib-header-item {
+    padding: 8px 12px 6px 12px;
+}
+
+.aib-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.aib-subtitle {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.38);
+    margin-top: 1px;
+}
+
+/* ── Refresh button ──────────────────────────────────────────────────────────── */
+
+.aib-refresh-btn {
+    border-radius: 8px;
+    padding: 5px 9px;
+    font-size: 15px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.55);
+    transition-duration: 120ms;
+    transition-property: background-color, color;
+    transition-timing-function: ease-out;
+}
+
+.aib-refresh-btn:hover {
+    background-color: rgba(255, 255, 255, 0.09);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.aib-refresh-btn-spinning {
+    color: #e5a50a;
+}
+
+/* ── Provider rows ───────────────────────────────────────────────────────────── */
+
+.aib-provider-item {
+    padding: 7px 12px;
+    border-radius: 6px;
+    margin: 1px 4px;
+    transition-duration: 100ms;
+    transition-property: background-color;
+}
+
+.aib-provider-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.aib-dot-active {
+    font-size: 10px;
+    color: #57e389;
+    margin-right: 6px;
+    padding-top: 1px;
+}
+
+.aib-dot {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.25);
+    margin-right: 6px;
+    padding-top: 1px;
+}
+
+.aib-provider-name-active {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.aib-provider-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.70);
+}
+
+/* ── Status badges ───────────────────────────────────────────────────────────── */
+
+.aib-badge-active {
+    font-size: 10px;
+    font-weight: 600;
+    color: #57e389;
+    background-color: rgba(87, 227, 137, 0.12);
+    border: 1px solid rgba(87, 227, 137, 0.25);
+    border-radius: 5px;
+    padding: 1px 7px;
+}
+
+.aib-badge-warn {
+    font-size: 10px;
+    font-weight: 600;
+    color: #e5a50a;
+    background-color: rgba(229, 165, 10, 0.12);
+    border: 1px solid rgba(229, 165, 10, 0.25);
+    border-radius: 5px;
+    padding: 1px 7px;
+}
+
+.aib-badge-error {
+    font-size: 10px;
+    font-weight: 600;
+    color: #e01b24;
+    background-color: rgba(224, 27, 36, 0.12);
+    border: 1px solid rgba(224, 27, 36, 0.25);
+    border-radius: 5px;
+    padding: 1px 7px;
+}
+
+.aib-badge-off {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.28);
+    border-radius: 5px;
+    padding: 1px 7px;
+}
+
+.aib-badge-unknown {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.22);
+    border-radius: 5px;
+    padding: 1px 7px;
+}
+
+/* ── Bar rows ────────────────────────────────────────────────────────────────── */
+
+.aib-bar-row {
+    margin-top: 4px;
+    spacing: 6px;
+}
+
+.aib-bar-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.40);
+}
+
+.aib-bar-pct {
+    font-size: 11px;
+    font-family: monospace;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.aib-bar-reset {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.30);
+    font-style: italic;
+}
+
+/* ── Cost row ────────────────────────────────────────────────────────────────── */
+
+.aib-cost-row {
+    margin-top: 4px;
+    spacing: 8px;
+}
+
+.aib-cost-label {
+    font-size: 11px;
+    font-family: monospace;
+    color: rgba(255, 255, 255, 0.50);
+}
+
+.aib-cost-calls {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.28);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────────── */
+
+.aib-empty-label {
+    color: rgba(255, 255, 255, 0.40);
+    font-style: italic;
+}
+
+/* ── Error tooltip text ──────────────────────────────────────────────────────── */
+
+.aib-error-label {
+    font-size: 10px;
+    color: #e01b24;
+    margin-top: 3px;
+    font-style: italic;
+}

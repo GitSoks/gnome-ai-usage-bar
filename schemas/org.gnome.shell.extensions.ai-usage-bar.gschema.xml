@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.ai-usage-bar"
+          path="/org/gnome/shell/extensions/ai-usage-bar/">
+
+    <!-- ── Active provider & display ──────────────────────────────────────── -->
+    <key name="active-provider" type="s">
+      <default>'claude'</default>
+      <summary>Active provider driving the panel icon</summary>
+      <description>ID of the provider shown in the panel meter: claude, gemini, codex, copilot, opencode.</description>
+    </key>
+
+    <key name="enabled-providers" type="as">
+      <default>['claude', 'gemini', 'copilot', 'opencode']</default>
+      <summary>List of provider IDs to probe</summary>
+    </key>
+
+    <key name="refresh-interval-seconds" type="i">
+      <default>300</default>
+      <summary>Seconds between automatic quota refreshes (0 = manual only)</summary>
+    </key>
+
+    <key name="warning-threshold-pct" type="i">
+      <default>50</default>
+      <summary>Remaining-quota % below which the meter turns amber</summary>
+    </key>
+
+    <key name="critical-threshold-pct" type="i">
+      <default>20</default>
+      <summary>Remaining-quota % below which the meter turns red</summary>
+    </key>
+
+    <key name="show-weekly-bar" type="b">
+      <default>true</default>
+      <summary>Show the weekly-window hairline below the session bar</summary>
+    </key>
+
+    <!-- ── CLI paths (override auto-detection) ────────────────────────────── -->
+    <key name="claude-cli-path" type="s">
+      <default>'claude'</default>
+      <summary>Path or command name for the Claude CLI binary</summary>
+    </key>
+
+    <key name="codex-cli-path" type="s">
+      <default>'codex'</default>
+      <summary>Path or command name for the Codex CLI binary</summary>
+    </key>
+
+    <key name="gemini-cli-path" type="s">
+      <default>'gemini'</default>
+      <summary>Path or command name for the Gemini CLI binary</summary>
+    </key>
+
+    <key name="copilot-cli-path" type="s">
+      <default>'copilot'</default>
+      <summary>Path or command name for the GitHub Copilot CLI binary</summary>
+    </key>
+
+    <key name="opencode-cli-path" type="s">
+      <default>'opencode'</default>
+      <summary>Path or command name for the OpenCode CLI binary</summary>
+    </key>
+
+    <!-- ── Provider-specific overrides ───────────────────────────────────── -->
+    <key name="claude-config-dir" type="s">
+      <default>''</default>
+      <summary>Override CLAUDE_CONFIG_DIR (empty = use env var or ~/.claude)</summary>
+    </key>
+
+    <!-- ── Persistence cache ──────────────────────────────────────────────── -->
+    <key name="cached-quota-json" type="s">
+      <default>'{}'</default>
+      <summary>Last-known-good quota data (JSON blob, written by extension)</summary>
+    </key>
+
+    <!-- ── Prefs → extension trigger ─────────────────────────────────────── -->
+    <key name="request-refresh" type="b">
+      <default>false</default>
+      <summary>Toggle to request a quota refresh from the preferences window</summary>
+    </key>
+
+    <!-- ── Panel display options ─────────────────────────────────────────── -->
+    <key name="show-provider-icon" type="b">
+      <default>true</default>
+      <summary>Show the active provider brand icon in the top panel</summary>
+    </key>
+
+    <key name="panel-label-mode" type="i">
+      <default>3</default>
+      <summary>Which percentages to show next to the bar: 0=none 1=session 2=weekly 3=both</summary>
+    </key>
+
+    <key name="meter-width" type="i">
+      <default>56</default>
+      <range min="30" max="160"/>
+      <summary>Width of the panel usage bar in pixels</summary>
+    </key>
+
+    <key name="stale-timeout-minutes" type="i">
+      <default>30</default>
+      <range min="5" max="240"/>
+      <summary>Minutes after which cached quota data is considered stale and the bar dims</summary>
+    </key>
+
+    <key name="startup-refresh" type="b">
+      <default>true</default>
+      <summary>Automatically fetch quota data when the extension loads on login</summary>
+    </key>
+
+    <!-- ── OpenCode budget limits (0.0 = disabled, show raw cost) ────────── -->
+    <key name="opencode-budget-5h" type="d">
+      <default>0.0</default>
+      <summary>Budget in USD for the 5-hour window (0 = show raw cost instead of bar)</summary>
+    </key>
+
+    <key name="opencode-budget-7d" type="d">
+      <default>0.0</default>
+      <summary>Budget in USD for the 7-day window (0 = show raw cost instead of bar)</summary>
+    </key>
+
+  </schema>
+</schemalist>

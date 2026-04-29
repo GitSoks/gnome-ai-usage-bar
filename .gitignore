@@ -1,0 +1,13 @@
+# IDE
+.vscode/
+.idea/
+
+# Compiled schemas
+schemas/gschemas.compiled
+
+# Test coverage
+coverage/
+
+# Tarballs
+*.zip
+*.tar.gz
