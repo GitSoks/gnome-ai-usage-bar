@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/david/Documents/llm-text-pro@sokolowski.tech/schemas/**)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "Read(//home/david/Documents/llm-text-pro@sokolowski.tech/**)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}

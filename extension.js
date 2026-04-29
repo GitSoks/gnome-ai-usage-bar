@@ -260,11 +260,13 @@ class AIUsageIndicator extends PanelMenu.Button {
 
         this._timerId    = null;
         this._sleepId    = null;
+        this._wakeupTimerId = null;
         this._lastRefresh = null;
         this._refreshTs  = null;
         this._cache      = {};         // id → result
         this._countdownTimer = null;
         this._initialLoad = true;
+        this._destroyed = false;
 
         this._buildMenu();
         this._startSleepMonitor();
@@ -290,7 +292,7 @@ class AIUsageIndicator extends PanelMenu.Button {
             }),
             this._ext.settings.connect('changed::opencode-budget-5h', () => { this._updatePanelMeter(); if (this.menu.isOpen) this._rebuildProviderRows(); }),
             this._ext.settings.connect('changed::opencode-budget-7d', () => { this._updatePanelMeter(); if (this.menu.isOpen) this._rebuildProviderRows(); }),
-            this._ext.settings.connect('changed::request-refresh', () => this.refresh().catch(e => logError(e, 'AIUsageBar'))),
+            this._ext.settings.connect('changed::request-refresh', () => this.refresh().catch(e => console.error('AIUsageBar:', e))),
             // Pick up data written by the prefs window's own fetching
             this._ext.settings.connect('changed::cached-quota-json', () => {
                 this._loadCache();
@@ -300,7 +302,7 @@ class AIUsageIndicator extends PanelMenu.Button {
         ];
 
         // Rebuild provider rows when menu opens
-        this.menu.connect('open-state-changed', (menu, open) => {
+        this._menuOpenStateId = this.menu.connect('open-state-changed', (menu, open) => {
             if (open) {
                 this._rebuildProviderRows();
                 this._startCountdownTimer();
@@ -337,7 +339,7 @@ class AIUsageIndicator extends PanelMenu.Button {
         this._refreshBtn.connect('clicked', () => {
             this._refreshBtn.label = '↻';
             this._refreshBtn.remove_style_class_name('aib-refresh-btn-spinning');
-            this.refresh().catch(e => logError(e, 'AIUsageBar'));
+            this.refresh().catch(e => console.error('AIUsageBar:', e));
         });
         hBox.add_child(this._refreshBtn);
         this._headerItem.add_child(hBox);
@@ -602,7 +604,7 @@ class AIUsageIndicator extends PanelMenu.Button {
 
     _stopCountdownTimer() {
         if (this._countdownTimer !== null) {
-            GLib.source_remove(this._countdownTimer);
+            GLib.Source.remove(this._countdownTimer);
             this._countdownTimer = null;
         }
     }
@@ -687,12 +689,14 @@ class AIUsageIndicator extends PanelMenu.Button {
     // ── Refresh orchestration ──────────────────────────────────────────────────
 
     async refresh() {
+        if (this._destroyed) return;
         this._refreshBtn?.add_style_class_name('aib-refresh-btn-spinning');
         try {
             const enabled = this._ext.settings.get_strv('enabled-providers');
             const providers = this._ext.providers.filter(p => enabled.includes(p.id));
 
             await Promise.all(providers.map(p => this._refreshOne(p)));
+            if (this._destroyed) return;
 
             this._refreshTs = Date.now();
             this._saveCache();
@@ -724,23 +728,23 @@ class AIUsageIndicator extends PanelMenu.Button {
         const interval = this._ext.settings.get_int('refresh-interval-seconds');
         if (interval > 0) {
             this._timerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, interval, () => {
-                this.refresh().catch(e => logError(e, 'AIUsageBar'));
+                this.refresh().catch(e => console.error('AIUsageBar:', e));
                 return GLib.SOURCE_CONTINUE;
             });
         }
         if (this._initialLoad) {
             this._initialLoad = false;
             if (this._ext.settings.get_boolean('startup-refresh'))
-                this.refresh().catch(e => logError(e, 'AIUsageBar'));
+                this.refresh().catch(e => console.error('AIUsageBar:', e));
         } else if (interval > 0) {
             // Refresh immediately when interval is changed to a non-zero value
-            this.refresh().catch(e => logError(e, 'AIUsageBar'));
+            this.refresh().catch(e => console.error('AIUsageBar:', e));
         }
     }
 
     _stopTimer() {
         if (this._timerId !== null) {
-            GLib.source_remove(this._timerId);
+            GLib.Source.remove(this._timerId);
             this._timerId = null;
         }
     }
@@ -758,15 +762,18 @@ class AIUsageIndicator extends PanelMenu.Button {
                     const [sleeping] = params.deep_unpack();
                     if (!sleeping) {
                         // Resume from suspend — refresh after a short delay
-                        GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
-                            this.refresh().catch(e => logError(e, 'AIUsageBar'));
+                        if (this._wakeupTimerId !== null)
+                            GLib.Source.remove(this._wakeupTimerId);
+                        this._wakeupTimerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
+                            this._wakeupTimerId = null;
+                            this.refresh().catch(e => console.error('AIUsageBar:', e));
                             return GLib.SOURCE_REMOVE;
                         });
                     }
                 }
             );
         } catch (e) {
-            logError(e, 'AIUsageBar: could not subscribe to PrepareForSleep');
+            console.error('AIUsageBar: could not subscribe to PrepareForSleep:', e);
         }
     }
 
@@ -781,10 +788,14 @@ class AIUsageIndicator extends PanelMenu.Button {
 
     _saveCache() {
         try {
-            const json = JSON.stringify(this._cache);
-            if (json.length <= 8192) {
-                this._ext.settings.set_string('cached-quota-json', json);
+            const sanitized = {};
+            for (const [id, data] of Object.entries(this._cache)) {
+                const { rawResponse: _r, ...rest } = data;
+                sanitized[id] = rest;
             }
+            const json = JSON.stringify(sanitized);
+            if (json.length <= 8192)
+                this._ext.settings.set_string('cached-quota-json', json);
         } catch { /* non-fatal */ }
     }
 
@@ -809,12 +820,21 @@ class AIUsageIndicator extends PanelMenu.Button {
     // ── Cleanup ────────────────────────────────────────────────────────────────
 
     destroy() {
+        this._destroyed = true;
         this._stopTimer();
         this._stopSleepMonitor();
         this._stopCountdownTimer();
+        if (this._wakeupTimerId !== null) {
+            GLib.Source.remove(this._wakeupTimerId);
+            this._wakeupTimerId = null;
+        }
         if (this._settingsSignals) {
             this._settingsSignals.forEach(id => this._ext.settings.disconnect(id));
             this._settingsSignals = [];
+        }
+        if (this._menuOpenStateId) {
+            this.menu.disconnect(this._menuOpenStateId);
+            this._menuOpenStateId = null;
         }
         super.destroy();
     }

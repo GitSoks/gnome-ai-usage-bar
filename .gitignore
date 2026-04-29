@@ -14,3 +14,7 @@ coverage/
 *.zip
 *.tar.gz
 
+# Build script & output
+package-extension.sh
+*.shell-extension.zip
+
