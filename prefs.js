@@ -178,106 +178,6 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
 
     // ── Current usage group ────────────────────────────────────────────────────
 
-    _buildUsageGroup(settings) {
-        const PROVIDER_IDS    = ['claude', 'gemini', 'codex', 'copilot', 'opencode'];
-        const PROVIDER_NAMES  = { claude: 'Claude', gemini: 'Gemini', codex: 'Codex', copilot: 'Copilot', opencode: 'OpenCode' };
-
-        const group = new Adw.PreferencesGroup({
-            title: 'Live Status',
-            description: 'Last-fetched quota for each provider. Click Refresh to update now.',
-        });
-
-        // Refresh button row
-        const refreshRow = new Adw.ActionRow({
-            title: 'Fetch latest quota',
-            activatable: false,
-        });
-        const refreshBtn = new Gtk.Button({
-            label: '↻  Refresh Now',
-            valign: Gtk.Align.CENTER,
-            css_classes: ['suggested-action', 'pill'],
-        });
-        refreshRow.add_suffix(refreshBtn);
-        group.add(refreshRow);
-
-        // Per-provider rows
-        const providerRows = {};
-        PROVIDER_IDS.forEach(id => {
-            const row = new Adw.ActionRow({ title: PROVIDER_NAMES[id], activatable: false });
-            const iconPath = `${this.path}/icons/${id}-symbolic.svg`;
-            if (GLib.file_test(iconPath, GLib.FileTest.EXISTS)) {
-                const gicon = Gio.FileIcon.new(Gio.File.new_for_path(iconPath));
-                const img = new Gtk.Image({ gicon, pixel_size: 20, valign: Gtk.Align.CENTER });
-                row.add_prefix(img);
-            }
-            providerRows[id] = row;
-            group.add(row);
-        });
-
-        // Populate rows from cached JSON
-        const updateRows = () => {
-            let cached = {};
-            try { cached = JSON.parse(settings.get_string('cached-quota-json') || '{}'); } catch { /* ok */ }
-
-            PROVIDER_IDS.forEach(id => {
-                const data = cached[id];
-                const row  = providerRows[id];
-                if (!data) {
-                    row.subtitle = 'No data yet';
-                } else if (!data.installed) {
-                    row.subtitle = 'Not installed';
-                } else if (!data.authenticated) {
-                    row.subtitle = 'Not authenticated';
-                } else if (data.error && !data.session && !data.weekly && !data.cost) {
-                    row.subtitle = `Error: ${data.error}`;
-                } else {
-                    const parts = [];
-                    if (data.session) parts.push(`Session: ${Math.round(data.session.remaining * 100)}%`);
-                    if (data.weekly)  parts.push(`Weekly: ${Math.round(data.weekly.remaining * 100)}%`);
-                    if (data.cost)    parts.push(`Cost/wk: $${(data.cost.week ?? 0).toFixed(3)}`);
-                    if (data._ts) {
-                        const s = Math.floor((Date.now() - data._ts) / 1000);
-                        const age = s < 60 ? `${s}s ago` : s < 3600 ? `${Math.floor(s / 60)}m ago` : `${Math.floor(s / 3600)}h ago`;
-                        parts.push(age);
-                    }
-                    row.subtitle = parts.join('  ·  ') || 'Ready';
-                }
-            });
-        };
-
-        updateRows();
-
-        // Re-render when extension writes new data
-        settings.connect('changed::cached-quota-json', () => {
-            updateRows();
-            refreshBtn.label = '↻  Refresh Now';
-            refreshBtn.sensitive = true;
-        });
-
-        // Trigger the extension to refresh by toggling the key
-        refreshBtn.connect('clicked', () => {
-            refreshBtn.label = '↻  Refreshing…';
-            refreshBtn.sensitive = false;
-
-            // Also poke the panel extension (in case it's running new code)
-            settings.set_boolean('request-refresh', !settings.get_boolean('request-refresh'));
-
-            // Fetch data directly from this process so it always works,
-            // even when the panel extension's JS module cache is stale.
-            this._fetchAllProviders(settings).then(cache => {
-                const json = JSON.stringify(cache);
-                if (json.length <= 16384) settings.set_string('cached-quota-json', json);
-                refreshBtn.label = '↻  Refresh Now';
-                refreshBtn.sensitive = true;
-            }).catch(_e => {
-                refreshBtn.label = '↻  Refresh Now';
-                refreshBtn.sensitive = true;
-            });
-        });
-
-        return group;
-    }
-
     // ── Providers page ─────────────────────────────────────────────────────────
 
     _buildProvidersPage(settings) {
@@ -309,17 +209,59 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
         });
         panelGroup.add(activeRow);
 
-        // ── Live status ───────────────────────────────────────────────────────
+        // ── Provider configuration with live status ───────────────────────────
 
-        page.add(this._buildUsageGroup(settings));
-
-        // ── Provider configuration (all providers in one group) ───────────────
+        const refreshBtn = new Gtk.Button({
+            label: '↻  Refresh Now',
+            valign: Gtk.Align.CENTER,
+            css_classes: ['suggested-action', 'pill'],
+        });
 
         const configGroup = new Adw.PreferencesGroup({
             title: 'Provider Configuration',
-            description: 'Enable providers and configure CLI paths. Disabled providers are never queried.',
+            description: 'Enable providers and configure CLI paths. Live quota shown in each row subtitle.',
+            header_suffix: refreshBtn,
         });
         page.add(configGroup);
+
+        const expanders = {};
+
+        const updateSubtitles = () => {
+            let cached = {};
+            try { cached = JSON.parse(settings.get_string('cached-quota-json') || '{}'); } catch { /* ok */ }
+
+            PROVIDERS.forEach(provConfig => {
+                const expander = expanders[provConfig.id];
+                if (!expander) return;
+                const data = cached[provConfig.id];
+                if (!data) {
+                    const cliPath = settings.get_string(provConfig.cliKey) || provConfig.cliDefault;
+                    const installed = cliIsInstalled(cliPath);
+                    const credsPath = provConfig.credsPathFn(settings);
+                    const authenticated = installed && fileExists(credsPath);
+                    expander.subtitle = !installed ? 'Not installed'
+                        : !authenticated ? 'Not authenticated'
+                        : 'No data yet — click Refresh';
+                } else if (!data.installed) {
+                    expander.subtitle = 'Not installed';
+                } else if (!data.authenticated) {
+                    expander.subtitle = 'Not authenticated';
+                } else if (data.error && !data.session && !data.weekly && !data.cost) {
+                    expander.subtitle = `Error: ${data.error}`;
+                } else {
+                    const parts = [];
+                    if (data.session) parts.push(`Session: ${Math.round(data.session.remaining * 100)}%`);
+                    if (data.weekly)  parts.push(`Weekly: ${Math.round(data.weekly.remaining * 100)}%`);
+                    if (data.cost)    parts.push(`Cost/wk: $${(data.cost.week ?? 0).toFixed(3)}`);
+                    if (data._ts) {
+                        const s = Math.floor((Date.now() - data._ts) / 1000);
+                        const age = s < 60 ? `${s}s ago` : s < 3600 ? `${Math.floor(s / 60)}m ago` : `${Math.floor(s / 3600)}h ago`;
+                        parts.push(age);
+                    }
+                    expander.subtitle = parts.join('  ·  ') || 'Ready';
+                }
+            });
+        };
 
         PROVIDERS.forEach(provConfig => {
             const cliPath = settings.get_string(provConfig.cliKey) || provConfig.cliDefault;
@@ -327,20 +269,19 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
             const credsPath = provConfig.credsPathFn(settings);
             const authenticated = installed && fileExists(credsPath);
 
-            const statusText = !installed ? 'Not installed'
-                : !authenticated ? 'Not authenticated'
-                : 'Ready';
-
             const expander = new Adw.ExpanderRow({
                 title: provConfig.name,
-                subtitle: statusText,
+                subtitle: !installed ? 'Not installed'
+                    : !authenticated ? 'Not authenticated'
+                    : 'No data yet — click Refresh',
             });
+            expanders[provConfig.id] = expander;
 
             // Brand icon prefix
             const iconPath = `${this.path}/icons/${provConfig.id}-symbolic.svg`;
             if (GLib.file_test(iconPath, GLib.FileTest.EXISTS)) {
-                const gicon = Gio.FileIcon.new(Gio.File.new_for_path(iconPath));
-                const img = new Gtk.Image({ gicon, pixel_size: 24, valign: Gtk.Align.CENTER });
+                const file = Gio.File.new_for_path(iconPath);
+                const img = new Gtk.Image({ gicon: new Gio.FileIcon({ file }), pixel_size: 24, valign: Gtk.Align.CENTER });
                 expander.add_prefix(img);
             }
 
@@ -357,22 +298,6 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
             expander.add_suffix(enabledSwitch);
             expander.set_enable_expansion(true);
 
-            // Status row
-            const statusRow = new Adw.ActionRow({ title: 'Status', activatable: false });
-            const statusLabel = new Gtk.Label({ valign: Gtk.Align.CENTER });
-            if (!installed) {
-                statusLabel.label = '✗ Not installed';
-                statusLabel.add_css_class('error');
-            } else if (!authenticated) {
-                statusLabel.label = '⚠ Not authenticated';
-                statusLabel.add_css_class('warning');
-            } else {
-                statusLabel.label = '✓ Ready';
-                statusLabel.add_css_class('success');
-            }
-            statusRow.add_suffix(statusLabel);
-            expander.add_row(statusRow);
-
             // CLI path row
             expander.add_row(makeEntry(`${provConfig.name} CLI path`, settings, provConfig.cliKey));
 
@@ -388,6 +313,31 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
                 provConfig.extraRows(expander, settings);
 
             configGroup.add(expander);
+        });
+
+        // Populate subtitles from already-cached data
+        updateSubtitles();
+
+        // Re-render subtitles whenever the extension saves new quota data
+        settings.connect('changed::cached-quota-json', () => {
+            updateSubtitles();
+            refreshBtn.label = '↻  Refresh Now';
+            refreshBtn.sensitive = true;
+        });
+
+        refreshBtn.connect('clicked', () => {
+            refreshBtn.label = '↻  Refreshing…';
+            refreshBtn.sensitive = false;
+            settings.set_boolean('request-refresh', !settings.get_boolean('request-refresh'));
+            this._fetchAllProviders(settings).then(cache => {
+                const json = JSON.stringify(cache);
+                if (json.length <= 16384) settings.set_string('cached-quota-json', json);
+                refreshBtn.label = '↻  Refresh Now';
+                refreshBtn.sensitive = true;
+            }).catch(_e => {
+                refreshBtn.label = '↻  Refresh Now';
+                refreshBtn.sensitive = true;
+            });
         });
 
         return page;
@@ -542,16 +492,16 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
         };
 
         detailsGroup.add(makeInfoRow('Version', '1.0'));
-        detailsGroup.add(makeInfoRow('Author', 'David Sokolowski'));
+        detailsGroup.add(makeInfoRow('Author', 'David Sokolowski (@GitSoks)'));
         detailsGroup.add(makeInfoRow('License', 'GPL v3'));
 
         const sourceRow = new Adw.ActionRow({
-            title: 'Source code',
-            subtitle: 'git.sokolowski.tech/david/ai-usage-bar',
+            title: 'GitHub Repository',
+            subtitle: 'github.com/GitSoks/gnome-ai-usage-bar',
             activatable: false,
         });
         const linkBtn = new Gtk.LinkButton({
-            uri: 'https://git.sokolowski.tech/david/ai-usage-bar',
+            uri: 'https://github.com/GitSoks/gnome-ai-usage-bar',
             label: 'Open',
             valign: Gtk.Align.CENTER,
             css_classes: ['flat'],
