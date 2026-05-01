@@ -877,11 +877,49 @@ export default class AIUsageBarExtension extends Extension {
             new OpenCodeProvider(this._settings, this.path),
         ];
 
+        this._positionSettingsSignals = [
+            this._settings.connect('changed::position-area', () => this._repositionIndicator()),
+            this._settings.connect('changed::position-index', () => this._repositionIndicator()),
+        ];
+        
+        this._repositionIndicator();
+    }
+
+    _repositionIndicator() {
+        if (this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
+        }
+        
+        const area = this._settings.get_string('position-area');
+        const index = this._settings.get_int('position-index');
+        
         this._indicator = new AIUsageIndicator(this);
-        Main.panel.addToStatusArea('ai-usage-bar', this._indicator, 0, 'right');
+        Main.panel.addToStatusArea('ai-usage-bar', this._indicator, index, area);
     }
 
     disable() {
+        if (this._positionSettingsSignals) {
+            this._positionSettingsSignals.forEach(id => this._settings.disconnect(id));
+            this._positionSettingsSignals = [];
+        }
+        if (this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
+        }
+        this.providers = null;
+        this.providerGicons = null;
+        this._settings = null;
+    }
+}
+        if (this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
+        }
+        this.providers = null;
+        this.providerGicons = null;
+        this._settings = null;
+    }
         this._indicator?.destroy();
         this._indicator = null;
         this.providers = null;

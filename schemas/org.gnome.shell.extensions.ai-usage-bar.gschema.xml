@@ -80,6 +80,18 @@
     </key>
 
     <!-- ── Panel display options ─────────────────────────────────────────── -->
+    <key name="position-area" type="s">
+      <default>'right'</default>
+      <summary>Area of the top panel to show the extension</summary>
+      <description>left, center, or right (default)</description>
+    </key>
+
+    <key name="position-index" type="i">
+      <default>11</default>
+      <summary>Position index in the panel area</summary>
+      <description>Lower numbers are further left/top, higher numbers are further right/bottom</description>
+    </key>
+
     <key name="show-provider-icon" type="b">
       <default>true</default>
       <summary>Show the active provider brand icon in the top panel</summary>

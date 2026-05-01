@@ -431,6 +431,33 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
         });
         page.add(panelGroup);
 
+        const areaModeRow = new Adw.ComboRow({
+            title: 'Panel area',
+            subtitle: 'Which part of the top panel to show the extension in',
+        });
+        const areaModeModel = new Gtk.StringList();
+        ['Left', 'Middle', 'Right'].forEach(l => areaModeModel.append(l));
+        areaModeRow.set_model(areaModeModel);
+        
+        const areaMap = ['left', 'center', 'right'];
+        const currentArea = settings.get_string('position-area');
+        const areaIdx = areaMap.indexOf(currentArea);
+        if (areaIdx >= 0) areaModeRow.set_selected(areaIdx);
+        
+        areaModeRow.connect('notify::selected', () => {
+            const sel = areaModeRow.get_selected();
+            if (sel >= 0 && sel < areaMap.length) {
+                settings.set_string('position-area', areaMap[sel]);
+            }
+        });
+        panelGroup.add(areaModeRow);
+
+        panelGroup.add(makeSpinRow(
+            'Position index',
+            'Lower numbers are further left/top, higher numbers are further right/bottom',
+            settings, 'position-index', 0, 100
+        ));
+
         panelGroup.add(makeSwitchRow(
             'Show provider icon',
             'Displays the active AI backend brand icon in the panel, coloured in its brand colour',
