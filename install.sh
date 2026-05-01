@@ -16,7 +16,8 @@ python3 -m zipfile -c "$ZIP_NAME" \
     stylesheet.css \
     schemas/ \
     lib/ \
-    icons/
+    icons/ \
+    .venv/
 
 echo "► Installing extension..."
 gnome-extensions install --force "$ZIP_NAME"

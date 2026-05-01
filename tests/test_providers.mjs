@@ -242,11 +242,83 @@ async function testCopilot() {
   if (json.copilotPlan) ok(`Plan: ${json.copilotPlan}`);
 }
 
+// ── OPENCODE ───────────────────────────────────────────────────────────────────
+
+async function testOpenCode() {
+  section('OPENCODE');
+
+  const dbPath = join(HOME, '.local/share/opencode/opencode.db');
+  if (!existsSync(dbPath)) { fail('No opencode.db found'); return; }
+  ok('Local DB exists');
+
+  // Test console API if credentials are available
+  const configPath = join(HOME, '.config/dconf/user'); // gsettings stored here
+  // Read workspace id and auth cookie from gsettings via dconf dump
+  let workspaceId = null;
+  let authCookie = null;
+  try {
+    const { execSync } = await import('child_process');
+    const dump = execSync('dconf dump /org/gnome/shell/extensions/ai-usage-bar/', { encoding: 'utf8' });
+    const wsMatch = dump.match(/opencode-workspace-id='([^']*)'/);
+    const authMatch = dump.match(/opencode-auth-cookie='([^']*)'/);
+    if (wsMatch) workspaceId = wsMatch[1];
+    if (authMatch) authCookie = authMatch[1];
+  } catch { /* dconf not available */ }
+
+  if (!workspaceId || !authCookie) {
+    warn('No workspace ID / auth cookie configured — skipping console API test');
+    ok('Local DB mode works (manual quotas required for bars)');
+    return;
+  }
+
+  ok(`Workspace ID: ${workspaceId}`);
+
+  const cookieHeader = authCookie.startsWith('auth=') ? authCookie : `auth=${authCookie}`;
+  const res = await fetch('https://console.opencode.ai/zen/go/v1/usage', {
+    headers: { 'Cookie': cookieHeader },
+  });
+  console.log(`  HTTP ${res.status}`);
+  if (res.status !== 200) {
+    const body = await res.text();
+    fail(`API returned ${res.status}: ${body.slice(0, 200)}`);
+    return;
+  }
+
+  const json = await res.json();
+  console.log('  Top-level keys:', Object.keys(json).join(', '));
+
+  const extractWindow = (obj) => {
+    if (!obj || typeof obj !== 'object') return null;
+    const usagePercent = typeof obj.usagePercent === 'number' ? obj.usagePercent : 0;
+    const remaining = Math.max(0, Math.min(1, 1 - usagePercent / 100));
+    const resetsInSeconds =
+      typeof obj.resetsInSeconds === 'number' ? obj.resetsInSeconds
+      : typeof obj.resetInSec === 'number' ? obj.resetInSec
+      : 0;
+    const resetAt = resetsInSeconds > 0 ? new Date(Date.now() + resetsInSeconds * 1000) : null;
+    return { remaining, resetAt };
+  };
+
+  const rolling = extractWindow(json.rolling);
+  const weekly = extractWindow(json.weekly);
+  const monthly = extractWindow(json.monthly);
+
+  if (rolling) ok(`Rolling (5h):  remaining=${pct(rolling.remaining)}  resets in ${countdown(rolling.resetAt)}`);
+  else warn('No rolling window');
+
+  if (weekly) ok(`Weekly:        remaining=${pct(weekly.remaining)}  resets in ${countdown(weekly.resetAt)}`);
+  else warn('No weekly window');
+
+  if (monthly) ok(`Monthly:       remaining=${pct(monthly.remaining)}  resets in ${countdown(monthly.resetAt)}`);
+  else warn('No monthly window');
+}
+
 // ── Run all ────────────────────────────────────────────────────────────────────
 
 await testClaude().catch(e => console.log('  ERROR:', e.message));
 await testGemini().catch(e => console.log('  ERROR:', e.message));
 await testCopilot().catch(e => console.log('  ERROR:', e.message));
+await testOpenCode().catch(e => console.log('  ERROR:', e.message));
 console.log('\n' + '─'.repeat(60));
 console.log('  Done.');
 console.log('─'.repeat(60) + '\n');

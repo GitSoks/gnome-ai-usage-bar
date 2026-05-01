@@ -114,21 +114,90 @@ const PROVIDERS = [
     {
         id: 'opencode',
         name: 'OpenCode',
-        description: 'OpenCode CLI (cost-based, no quota limit)',
+        description: 'OpenCode CLI',
         cliKey: 'opencode-cli-path',
         cliDefault: 'opencode',
         credsPathFn: () => GLib.build_filenamev([GLib.get_home_dir(), '.local', 'share', 'opencode', 'opencode.db']),
         extraRows: (expander, settings) => {
-            expander.add_row(makeDoubleSpinRow(
+            // Display mode selector
+            const modeRow = new Adw.ComboRow({ title: 'Display mode' });
+            const modeModel = new Gtk.StringList();
+            modeModel.append('Cost (USD spent)');
+            modeModel.append('Go Subscription (calls used)');
+            modeRow.set_model(modeModel);
+            const isGo = () => settings.get_string('opencode-display-mode') === 'go-subscription';
+            modeRow.set_selected(isGo() ? 1 : 0);
+            modeRow.connect('notify::selected', () => {
+                settings.set_string('opencode-display-mode',
+                    modeRow.get_selected() === 1 ? 'go-subscription' : 'cost');
+            });
+            expander.add_row(modeRow);
+
+            // Cost mode rows
+            const budget5hRow = makeDoubleSpinRow(
                 '5-hour budget (USD)',
                 'Max spend for the 5h window — 0 shows raw cost only',
                 settings, 'opencode-budget-5h', 0.0, 1000.0, 0.5
-            ));
-            expander.add_row(makeDoubleSpinRow(
+            );
+            const budget7dRow = makeDoubleSpinRow(
                 '7-day budget (USD)',
                 'Max spend for the 7-day window — 0 shows raw cost only',
                 settings, 'opencode-budget-7d', 0.0, 1000.0, 1.0
-            ));
+            );
+            expander.add_row(budget5hRow);
+            expander.add_row(budget7dRow);
+
+            // ── Go subscription: console credentials (auto-fetch) ─────────────
+            const autoFetchRow = makeSwitchRow(
+                'Auto-fetch Go quotas from web',
+                'Fetches real-time usage from console.opencode.ai instead of using local DB + manual quotas',
+                settings, 'opencode-go-auto-fetch'
+            );
+            expander.add_row(autoFetchRow);
+
+            const workspaceIdRow = makeEntry('Workspace ID (optional)', settings, 'opencode-workspace-id');
+            workspaceIdRow.set_tooltip_text('Optional — found in the URL: opencode.ai/workspace/{id}/go. Only needed for scraping fallback.');
+            expander.add_row(workspaceIdRow);
+
+            const authCookieRow = makeEntry('Auth cookie', settings, 'opencode-auth-cookie');
+            authCookieRow.set_tooltip_text('Copy the \'auth\' cookie value from browser DevTools → Application → Cookies → opencode.ai');
+            expander.add_row(authCookieRow);
+
+            // Go subscription mode rows (manual fallback)
+            const sessionQuotaRow = makeSpinRow(
+                '5h window quota (calls)',
+                'Total calls per 5h session — 0 shows raw count without a bar (fallback when auto-fetch is off)',
+                settings, 'opencode-go-session-quota', 0, 99999, 10
+            );
+            const weeklyQuotaRow = makeSpinRow(
+                'Weekly quota (calls)',
+                'Total calls per week — 0 shows raw count without a bar (fallback when auto-fetch is off)',
+                settings, 'opencode-go-weekly-quota', 0, 99999, 50
+            );
+            const monthlyQuotaRow = makeSpinRow(
+                'Monthly quota (calls)',
+                'Total calls per month — 0 shows raw count without a bar (fallback when auto-fetch is off)',
+                settings, 'opencode-go-monthly-quota', 0, 99999, 100
+            );
+            expander.add_row(sessionQuotaRow);
+            expander.add_row(weeklyQuotaRow);
+            expander.add_row(monthlyQuotaRow);
+
+            const updateVisibility = () => {
+                const go = isGo();
+                const auto = settings.get_boolean('opencode-go-auto-fetch');
+                budget5hRow.visible = !go;
+                budget7dRow.visible = !go;
+                autoFetchRow.visible = go;
+                workspaceIdRow.visible = go;
+                authCookieRow.visible = go;
+                sessionQuotaRow.visible = go && !auto;
+                weeklyQuotaRow.visible = go && !auto;
+                monthlyQuotaRow.visible = go && !auto;
+            };
+            updateVisibility();
+            settings.connect('changed::opencode-display-mode', updateVisibility);
+            settings.connect('changed::opencode-go-auto-fetch', updateVisibility);
         },
     },
 ];
@@ -155,7 +224,7 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
             new GeminiProvider(settings),
             new CodexProvider(settings),
             new CopilotProvider(settings),
-            new OpenCodeProvider(settings),
+            new OpenCodeProvider(settings, this.path),
         ].filter(p => enabled.includes(p.id));
 
         // Load existing cache so we keep data for providers we don't refresh
@@ -247,9 +316,13 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
                 } else if (data.error && !data.session && !data.weekly && !data.cost) {
                     expander.subtitle = `Error: ${data.error}`;
                 } else {
+                    const fmtWindow = (w) => w.remaining !== null
+                        ? `${w.label.split('(')[0].trim()}: ${Math.round(w.remaining * 100)}%`
+                        : w.label;
                     const parts = [];
-                    if (data.session) parts.push(`Session: ${Math.round(data.session.remaining * 100)}%`);
-                    if (data.weekly)  parts.push(`Weekly: ${Math.round(data.weekly.remaining * 100)}%`);
+                    if (data.session) parts.push(fmtWindow(data.session));
+                    if (data.weekly)  parts.push(fmtWindow(data.weekly));
+                    if (data.monthly) parts.push(fmtWindow(data.monthly));
                     if (data.cost)    parts.push(`Cost/wk: $${(data.cost.week ?? 0).toFixed(3)}`);
                     if (data._ts) {
                         const s = Math.floor((Date.now() - data._ts) / 1000);
@@ -535,6 +608,10 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
                 title: 'OpenCode budgets',
                 subtitle: 'Set 5h and 7d USD budgets in Provider Configuration to see a percentage bar instead of raw cost',
             },
+            {
+                title: 'OpenCode Go auto-fetch',
+                subtitle: 'Enter your workspace ID and auth cookie in Provider Configuration to fetch live Go subscription quotas automatically',
+            },
         ].forEach(tip => {
             tipsGroup.add(new Adw.ActionRow({
                 title: tip.title,
@@ -581,7 +658,7 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
             },
             {
                 title: 'OpenCode',
-                subtitle: 'Reads ~/.local/share/opencode/opencode.db directly — no network request, no credentials needed',
+                subtitle: 'Reads ~/.local/share/opencode/opencode.db directly. For Go subscription mode, optionally fetches live quotas from console.opencode.ai/zen/go/v1/usage',
             },
         ].forEach(s => {
             sourcesGroup.add(new Adw.ActionRow({

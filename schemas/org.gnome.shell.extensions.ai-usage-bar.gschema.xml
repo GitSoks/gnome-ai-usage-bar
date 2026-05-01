@@ -107,6 +107,12 @@
       <summary>Automatically fetch quota data when the extension loads on login</summary>
     </key>
 
+    <!-- ── OpenCode display mode ──────────────────────────────────────────── -->
+    <key name="opencode-display-mode" type="s">
+      <default>'cost'</default>
+      <summary>OpenCode display mode: 'cost' shows local DB spend, 'go-subscription' shows Go plan remaining quota</summary>
+    </key>
+
     <!-- ── OpenCode budget limits (0.0 = disabled, show raw cost) ────────── -->
     <key name="opencode-budget-5h" type="d">
       <default>0.0</default>
@@ -116,6 +122,44 @@
     <key name="opencode-budget-7d" type="d">
       <default>0.0</default>
       <summary>Budget in USD for the 7-day window (0 = show raw cost instead of bar)</summary>
+    </key>
+
+    <!-- ── OpenCode Go subscription quota totals (0 = show raw count only) ─ -->
+    <key name="opencode-go-session-quota" type="i">
+      <default>0</default>
+      <range min="0" max="99999"/>
+      <summary>Total calls in the 5-hour Go subscription window (0 = no bar, show count only)</summary>
+    </key>
+
+    <key name="opencode-go-weekly-quota" type="i">
+      <default>0</default>
+      <range min="0" max="99999"/>
+      <summary>Total calls in the weekly Go subscription window (0 = no bar, show count only)</summary>
+    </key>
+
+    <key name="opencode-go-monthly-quota" type="i">
+      <default>0</default>
+      <range min="0" max="99999"/>
+      <summary>Total calls in the monthly Go subscription window (0 = no bar, show count only)</summary>
+    </key>
+
+    <!-- ── OpenCode Go console credentials (for auto-fetching quotas) ─ -->
+    <key name="opencode-workspace-id" type="s">
+      <default>''</default>
+      <summary>OpenCode workspace ID for Go subscription quota fetching</summary>
+      <description>Found in the URL when visiting opencode.ai/workspace/{id}/go</description>
+    </key>
+
+    <key name="opencode-auth-cookie" type="s">
+      <default>''</default>
+      <summary>OpenCode auth cookie for console API access</summary>
+      <description>Copy the 'auth' cookie value from browser DevTools while logged into opencode.ai</description>
+    </key>
+
+    <key name="opencode-go-auto-fetch" type="b">
+      <default>true</default>
+      <summary>Automatically fetch Go subscription quotas from console.opencode.ai</summary>
+      <description>When enabled and credentials are set, fetches real-time usage from the web API instead of relying on manually set quotas</description>
     </key>
 
   </schema>

@@ -292,6 +292,13 @@ class AIUsageIndicator extends PanelMenu.Button {
             }),
             this._ext.settings.connect('changed::opencode-budget-5h', () => { this._updatePanelMeter(); if (this.menu.isOpen) this._rebuildProviderRows(); }),
             this._ext.settings.connect('changed::opencode-budget-7d', () => { this._updatePanelMeter(); if (this.menu.isOpen) this._rebuildProviderRows(); }),
+            this._ext.settings.connect('changed::opencode-display-mode', () => this.refresh().catch(e => console.error('AIUsageBar:', e))),
+            this._ext.settings.connect('changed::opencode-go-session-quota', () => { this._updatePanelMeter(); if (this.menu.isOpen) this._rebuildProviderRows(); }),
+            this._ext.settings.connect('changed::opencode-go-weekly-quota', () => { this._updatePanelMeter(); if (this.menu.isOpen) this._rebuildProviderRows(); }),
+            this._ext.settings.connect('changed::opencode-go-monthly-quota', () => { this._updatePanelMeter(); if (this.menu.isOpen) this._rebuildProviderRows(); }),
+            this._ext.settings.connect('changed::opencode-workspace-id', () => this.refresh().catch(e => console.error('AIUsageBar:', e))),
+            this._ext.settings.connect('changed::opencode-auth-cookie', () => this.refresh().catch(e => console.error('AIUsageBar:', e))),
+            this._ext.settings.connect('changed::opencode-go-auto-fetch', () => this.refresh().catch(e => console.error('AIUsageBar:', e))),
             this._ext.settings.connect('changed::request-refresh', () => this.refresh().catch(e => console.error('AIUsageBar:', e))),
             // Pick up data written by the prefs window's own fetching
             this._ext.settings.connect('changed::cached-quota-json', () => {
@@ -468,6 +475,10 @@ class AIUsageIndicator extends PanelMenu.Button {
             if (data.weekly) {
                 const weeklyRow = this._makeBarRow(data.weekly, warnThr, critThr);
                 outer.add_child(weeklyRow);
+            }
+            if (data.monthly) {
+                const monthlyRow = this._makeBarRow(data.monthly, warnThr, critThr);
+                outer.add_child(monthlyRow);
             }
             if (data.cost && !data.session && !data.weekly) {
                 const b5h = this._ext.settings.get_double('opencode-budget-5h');
@@ -863,7 +874,7 @@ export default class AIUsageBarExtension extends Extension {
             new GeminiProvider(this._settings),
             new CodexProvider(this._settings),
             new CopilotProvider(this._settings),
-            new OpenCodeProvider(this._settings),
+            new OpenCodeProvider(this._settings, this.path),
         ];
 
         this._indicator = new AIUsageIndicator(this);
