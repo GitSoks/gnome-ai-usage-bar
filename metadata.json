@@ -2,6 +2,7 @@
   "name": "AI Usage Bar",
   "description": "Live AI quota meter in the GNOME panel. Shows session and weekly remaining quota for Claude, Gemini, Codex, Copilot, and OpenCode as a two-bar meter — inspired by codexbar.",
   "uuid": "ai-usage-bar@sokolowski.tech",
+  "version": 1,
   "shell-version": ["49", "50"],
   "settings-schema": "org.gnome.shell.extensions.ai-usage-bar",
   "url": "https://github.com/GitSoks/gnome-ai-usage-bar"

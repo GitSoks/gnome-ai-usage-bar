@@ -267,6 +267,7 @@ class AIUsageIndicator extends PanelMenu.Button {
         this._countdownTimer = null;
         this._initialLoad = true;
         this._destroyed = false;
+        this._refreshing = false;
 
         this._buildMenu();
         this._startSleepMonitor();
@@ -647,7 +648,7 @@ class AIUsageIndicator extends PanelMenu.Button {
                 weeklyPct  = Math.max(0, (b7d  - (data.cost.week  ?? 0)) / b7d);
         }
 
-        this._meter.setData(sessionPct, weeklyPct, { warnThr, critThr, stale: isStale && !data, showWeekly });
+        this._meter.setData(sessionPct, weeklyPct, { warnThr, critThr, stale: isStale, showWeekly });
 
         // Update provider icon in panel
         const showIcon = this._ext.settings.get_boolean('show-provider-icon');
@@ -677,19 +678,15 @@ class AIUsageIndicator extends PanelMenu.Button {
         this._panelPctLabel.text = labelText;
         this._panelPctLabel.style = '';
 
-        // Tooltip
-        let tooltip = `AI Usage Bar — ${activeId ?? 'none'}`;
-        if (data?.session) {
-            tooltip += `\nSession: ${Math.round(data.session.remaining * 100)}%`;
-            if (data.session.resetAt) tooltip += ` · ${formatResetLabel(data.session.resetAt)}`;
-        }
-        if (data?.weekly) {
-            tooltip += `\nWeekly: ${Math.round(data.weekly.remaining * 100)}%`;
-            if (data.weekly.resetAt) tooltip += ` · ${formatResetLabel(data.weekly.resetAt)}`;
-        }
-        if (data?.cost) tooltip += `\n5h cost: ${formatCost(data.cost.today ?? 0)}`;
-        if (data?.error) tooltip += `\n⚠ ${data.error}`;
-        this.set_name(tooltip);
+        // Accessible name (single line, no newlines — screen readers)
+        let a11yName = `AI Usage Bar — ${activeId ?? 'none'}`;
+        if (data?.session?.remaining !== undefined)
+            a11yName += ` — Session ${Math.round(data.session.remaining * 100)}%`;
+        if (data?.weekly?.remaining !== undefined)
+            a11yName += ` — Weekly ${Math.round(data.weekly.remaining * 100)}%`;
+        if (data?.error)
+            a11yName += ` — Error: ${data.error}`;
+        this.set_name(a11yName);
     }
 
     _onActiveProviderChanged() {
@@ -700,7 +697,8 @@ class AIUsageIndicator extends PanelMenu.Button {
     // ── Refresh orchestration ──────────────────────────────────────────────────
 
     async refresh() {
-        if (this._destroyed) return;
+        if (this._destroyed || this._refreshing) return;
+        this._refreshing = true;
         this._refreshBtn?.add_style_class_name('aib-refresh-btn-spinning');
         try {
             const enabled = this._ext.settings.get_strv('enabled-providers');
@@ -716,19 +714,31 @@ class AIUsageIndicator extends PanelMenu.Button {
                 this._rebuildProviderRows();
             }
         } finally {
+            this._refreshing = false;
             this._refreshBtn?.remove_style_class_name('aib-refresh-btn-spinning');
         }
     }
 
     async _refreshOne(provider) {
-        if (provider.inFlight) return;
+        if (provider.inFlight || this._destroyed) return;
+        let installed = true;
+        try {
+            // Best-effort detect so we preserve "installed" even on network errors
+            const detect = await provider.detect();
+            installed = detect.installed;
+        } catch { /* ignore detect errors */ }
+
         try {
             const result = await provider.fetchQuota();
-            this._cache[provider.id] = { ...result, _ts: Date.now() };
+            if (!this._destroyed) {
+                this._cache[provider.id] = { installed, ...result, _ts: Date.now() };
+            }
         } catch (e) {
-            this._cache[provider.id] = {
-                installed: true, authenticated: false, error: e.message, _ts: Date.now(),
-            };
+            if (!this._destroyed) {
+                this._cache[provider.id] = {
+                    installed, authenticated: false, error: e.message, _ts: Date.now(),
+                };
+            }
         }
     }
 
@@ -739,15 +749,16 @@ class AIUsageIndicator extends PanelMenu.Button {
         const interval = this._ext.settings.get_int('refresh-interval-seconds');
         if (interval > 0) {
             this._timerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, interval, () => {
-                this.refresh().catch(e => console.error('AIUsageBar:', e));
+                if (!this._destroyed && !this._refreshing)
+                    this.refresh().catch(e => console.error('AIUsageBar:', e));
                 return GLib.SOURCE_CONTINUE;
             });
         }
         if (this._initialLoad) {
             this._initialLoad = false;
-            if (this._ext.settings.get_boolean('startup-refresh'))
+            if (this._ext.settings.get_boolean('startup-refresh') && !this._refreshing)
                 this.refresh().catch(e => console.error('AIUsageBar:', e));
-        } else if (interval > 0) {
+        } else if (interval > 0 && !this._refreshing) {
             // Refresh immediately when interval is changed to a non-zero value
             this.refresh().catch(e => console.error('AIUsageBar:', e));
         }
@@ -877,6 +888,13 @@ export default class AIUsageBarExtension extends Extension {
             new OpenCodeProvider(this._settings, this.path),
         ];
 
+        // Clean up any stale indicator from a previous crash or partial unload
+        const stale = Main.panel.statusArea['ai-usage-bar'];
+        if (stale && stale !== this._indicator) {
+            try { stale.destroy(); } catch { /* ignore */ }
+            delete Main.panel.statusArea['ai-usage-bar'];
+        }
+
         this._positionSettingsSignals = [
             this._settings.connect('changed::position-area', () => this._repositionIndicator()),
             this._settings.connect('changed::position-index', () => this._repositionIndicator()),
@@ -886,16 +904,31 @@ export default class AIUsageBarExtension extends Extension {
     }
 
     _repositionIndicator() {
-        if (this._indicator) {
-            this._indicator.destroy();
-            this._indicator = null;
-        }
-        
         const area = this._settings.get_string('position-area');
         const index = this._settings.get_int('position-index');
         
-        this._indicator = new AIUsageIndicator(this);
-        Main.panel.addToStatusArea('ai-usage-bar', this._indicator, index, area);
+        if (this._indicator) {
+            // Move existing indicator instead of destroying and recreating
+            const container = this._indicator.container;
+            const parent = container.get_parent();
+            if (parent) {
+                parent.remove_child(container);
+            }
+            const targetBox = area === 'left' ? Main.panel._leftBox :
+                              area === 'center' ? Main.panel._centerBox :
+                              Main.panel._rightBox;
+            if (targetBox && targetBox.insert_child_at_index) {
+                targetBox.insert_child_at_index(container, index);
+            } else {
+                // Fallback: destroy and re-add via public API
+                this._indicator.destroy();
+                this._indicator = new AIUsageIndicator(this);
+                Main.panel.addToStatusArea('ai-usage-bar', this._indicator, index, area);
+            }
+        } else {
+            this._indicator = new AIUsageIndicator(this);
+            Main.panel.addToStatusArea('ai-usage-bar', this._indicator, index, area);
+        }
     }
 
     disable() {
@@ -907,22 +940,10 @@ export default class AIUsageBarExtension extends Extension {
             this._indicator.destroy();
             this._indicator = null;
         }
-        this.providers = null;
-        this.providerGicons = null;
-        this._settings = null;
-    }
-}
-        if (this._indicator) {
-            this._indicator.destroy();
-            this._indicator = null;
+        if (this.providers) {
+            this.providers.forEach(p => p.destroy());
+            this.providers = null;
         }
-        this.providers = null;
-        this.providerGicons = null;
-        this._settings = null;
-    }
-        this._indicator?.destroy();
-        this._indicator = null;
-        this.providers = null;
         this.providerGicons = null;
         this._settings = null;
     }

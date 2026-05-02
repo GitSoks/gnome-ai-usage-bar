@@ -557,143 +557,219 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
             name: 'about',
         });
 
-        // ── Header card ────────────────────────────────────────────────────────
+        // ── Hero header ────────────────────────────────────────────────────────
 
-        const headerGroup = new Adw.PreferencesGroup();
-        page.add(headerGroup);
+        const heroGroup = new Adw.PreferencesGroup();
+        page.add(heroGroup);
 
-        const headerRow = new Adw.ActionRow({
-            title: 'AI Usage Bar',
-            subtitle: 'Glanceable AI quota meter for the GNOME top panel',
-            activatable: false,
+        const clamp = new Adw.Clamp({
+            maximum_size: 600,
+            margin_top: 24,
+            margin_bottom: 12,
+            margin_start: 12,
+            margin_end: 12,
         });
+
+        const heroBox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 12,
+            halign: Gtk.Align.CENTER,
+        });
+
         const logoPath = `${this.path}/icons/logo-symbolic.svg`;
-        let logoWidget;
-        if (GLib.file_test(logoPath, GLib.FileTest.EXISTS)) {
+        const hasLogo = GLib.file_test(logoPath, GLib.FileTest.EXISTS);
+        const logoWidget = new Gtk.Image({
+            pixel_size: 72,
+            halign: Gtk.Align.CENTER,
+        });
+        if (hasLogo) {
             const logoFile = Gio.File.new_for_path(logoPath);
-            logoWidget = new Gtk.Image({ gicon: new Gio.FileIcon({ file: logoFile }), pixel_size: 56, valign: Gtk.Align.CENTER });
+            logoWidget.gicon = new Gio.FileIcon({ file: logoFile });
         } else {
-            logoWidget = new Gtk.Image({ icon_name: 'utilities-terminal-symbolic', pixel_size: 56, valign: Gtk.Align.CENTER });
+            logoWidget.icon_name = 'utilities-terminal-symbolic';
         }
-        headerRow.add_prefix(logoWidget);
-        headerGroup.add(headerRow);
 
-        // ── Details ────────────────────────────────────────────────────────────
+        const titleLabel = new Gtk.Label({
+            label: 'AI Usage Bar',
+            css_classes: ['title-1'],
+            halign: Gtk.Align.CENTER,
+        });
 
-        const detailsGroup = new Adw.PreferencesGroup({ title: 'Details' });
-        page.add(detailsGroup);
+        const subtitleLabel = new Gtk.Label({
+            label: 'Glanceable AI quota meter for the GNOME top panel',
+            css_classes: ['dim-label'],
+            halign: Gtk.Align.CENTER,
+            wrap: true,
+            justify: Gtk.Justification.CENTER,
+        });
 
-        const makeInfoRow = (title, value) => {
-            const row = new Adw.ActionRow({ title, activatable: false });
-            row.add_suffix(new Gtk.Label({
-                label: value,
-                valign: Gtk.Align.CENTER,
-                css_classes: ['dim-label'],
-            }));
-            return row;
-        };
+        const version = this.metadata.version ?? '1.0';
+        const versionBadge = new Gtk.Label({
+            label: `Version ${version}`,
+            css_classes: ['caption'],
+            halign: Gtk.Align.CENTER,
+        });
 
-        detailsGroup.add(makeInfoRow('Version', '1.0'));
-        detailsGroup.add(makeInfoRow('Author', 'David Sokolowski (@GitSoks)'));
-        detailsGroup.add(makeInfoRow('License', 'GPL v3'));
+        heroBox.append(logoWidget);
+        heroBox.append(titleLabel);
+        heroBox.append(subtitleLabel);
+        heroBox.append(versionBadge);
+        clamp.set_child(heroBox);
+        heroGroup.add(clamp);
 
-        const sourceRow = new Adw.ActionRow({
-            title: 'GitHub Repository',
-            subtitle: 'github.com/GitSoks/gnome-ai-usage-bar',
+        // ── Links & Info ───────────────────────────────────────────────────────
+
+        const infoGroup = new Adw.PreferencesGroup({
+            title: 'Project',
+            margin_top: 12,
+        });
+        page.add(infoGroup);
+
+        const authorRow = new Adw.ActionRow({
+            title: 'Author',
+            subtitle: 'David Sokolowski (@GitSoks)',
+            icon_name: 'user-info-symbolic',
             activatable: false,
         });
-        const linkBtn = new Gtk.LinkButton({
-            uri: 'https://github.com/GitSoks/gnome-ai-usage-bar',
-            label: 'Open',
-            valign: Gtk.Align.CENTER,
-            css_classes: ['flat'],
-        });
-        sourceRow.add_suffix(linkBtn);
-        detailsGroup.add(sourceRow);
+        infoGroup.add(authorRow);
 
-        // ── Quick tips ─────────────────────────────────────────────────────────
+        const licenseRow = new Adw.ActionRow({
+            title: 'License',
+            subtitle: 'GNU General Public License v3',
+            icon_name: 'emblem-ok-symbolic',
+            activatable: false,
+        });
+        infoGroup.add(licenseRow);
+
+        const repoRow = new Adw.ActionRow({
+            title: 'Source Code',
+            subtitle: 'github.com/GitSoks/gnome-ai-usage-bar',
+            icon_name: 'go-next-symbolic',
+            activatable: true,
+        });
+        repoRow.connect('activated', () => {
+            Gtk.show_uri(null, 'https://github.com/GitSoks/gnome-ai-usage-bar', Gdk.CURRENT_TIME);
+        });
+        infoGroup.add(repoRow);
+
+        // ── How to use ─────────────────────────────────────────────────────────
 
         const tipsGroup = new Adw.PreferencesGroup({
-            title: 'Quick Tips',
+            title: 'How to Use',
+            description: 'A few tips to get the most out of AI Usage Bar.',
+            margin_top: 12,
         });
         page.add(tipsGroup);
 
         [
             {
                 title: 'Click the panel bar',
-                subtitle: 'Opens a popup with per-provider quota details and a manual refresh button',
+                subtitle: 'Open the popup to see per-provider quota details and a manual refresh button.',
+                icon: 'input-mouse-symbolic',
             },
             {
                 title: 'Switch active provider',
-                subtitle: 'Click any provider row in the popup to make it the source for the panel bar',
+                subtitle: 'Click any provider row in the popup to make it the source for the panel bar.',
+                icon: 'view-grid-symbolic',
             },
             {
-                title: 'Multiple providers',
-                subtitle: 'Enable all providers you use — each is checked independently and cached',
+                title: 'Enable multiple providers',
+                subtitle: 'All enabled providers are checked independently and cached for offline viewing.',
+                icon: 'network-cellular-signal-excellent-symbolic',
             },
             {
-                title: 'OpenCode budgets',
-                subtitle: 'Set 5h and 7d USD budgets in Provider Configuration to see a percentage bar instead of raw cost',
+                title: 'Set OpenCode budgets',
+                subtitle: 'Configure 5h and 7d USD budgets to see a percentage bar instead of raw cost.',
+                icon: 'money-symbolic',
             },
             {
-                title: 'OpenCode Go auto-fetch',
-                subtitle: 'Enter your workspace ID and auth cookie in Provider Configuration to fetch live Go subscription quotas automatically',
+                title: 'Auto-fetch Go quotas',
+                subtitle: 'Enter your workspace ID and auth cookie to fetch live Go subscription quotas.',
+                icon: 'preferences-system-network-symbolic',
             },
         ].forEach(tip => {
-            tipsGroup.add(new Adw.ActionRow({
+            const row = new Adw.ActionRow({
                 title: tip.title,
                 subtitle: tip.subtitle,
+                icon_name: tip.icon,
                 activatable: false,
-            }));
+            });
+            tipsGroup.add(row);
         });
 
-        // ── Credits ────────────────────────────────────────────────────────────
-
-        const creditsGroup = new Adw.PreferencesGroup({ title: 'Credits' });
-        page.add(creditsGroup);
-
-        creditsGroup.add(new Adw.ActionRow({
-            title: 'Inspired by codexbar',
-            subtitle: 'steipete/codexbar — the original macOS AI menu-bar app by Peter Steinberger',
-            activatable: false,
-        }));
-
-        // ── Data sources ───────────────────────────────────────────────────────
+        // ── Data Sources ───────────────────────────────────────────────────────
 
         const sourcesGroup = new Adw.PreferencesGroup({
             title: 'Data Sources',
             description: 'How each provider\'s quota is fetched. All requests use your existing CLI credentials — no separate login required.',
+            margin_top: 12,
         });
         page.add(sourcesGroup);
 
         [
             {
                 title: 'Claude',
-                subtitle: 'GET api.anthropic.com/api/oauth/usage — returns 5-hour session and 7-day remaining percentages',
+                subtitle: 'GET api.anthropic.com — returns 5-hour session and 7-day remaining percentages.',
+                icon: 'claude-symbolic',
+                fallbackIcon: 'emblem-system-symbolic',
             },
             {
                 title: 'Gemini',
-                subtitle: 'POST cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota — uses the OAuth token from ~/.gemini/',
+                subtitle: 'POST cloudcode-pa.googleapis.com — uses the OAuth token from ~/.gemini/.',
+                icon: 'gemini-symbolic',
+                fallbackIcon: 'system-search-symbolic',
             },
             {
                 title: 'Codex',
-                subtitle: 'Parses PTY output from codex --status — requires the Codex CLI to be installed',
+                subtitle: 'Parses PTY output from codex --status — requires the Codex CLI to be installed.',
+                icon: 'codex-symbolic',
+                fallbackIcon: 'utilities-terminal-symbolic',
             },
             {
                 title: 'Copilot',
-                subtitle: 'GitHub Copilot billing API — reads the token stored by gh auth login',
+                subtitle: 'GitHub Copilot billing API — reads the token stored by gh auth login.',
+                icon: 'copilot-symbolic',
+                fallbackIcon: 'dialog-information-symbolic',
             },
             {
                 title: 'OpenCode',
-                subtitle: 'Reads ~/.local/share/opencode/opencode.db directly. For Go subscription mode, optionally fetches live quotas from console.opencode.ai/zen/go/v1/usage',
+                subtitle: 'Reads ~/.local/share/opencode/opencode.db directly. Optionally fetches live quotas from console.opencode.ai.',
+                icon: 'opencode-symbolic',
+                fallbackIcon: 'preferences-system-symbolic',
             },
         ].forEach(s => {
-            sourcesGroup.add(new Adw.ActionRow({
+            const row = new Adw.ActionRow({
                 title: s.title,
                 subtitle: s.subtitle,
                 activatable: false,
-            }));
+            });
+            const iconPath = `${this.path}/icons/${s.icon}.svg`;
+            if (GLib.file_test(iconPath, GLib.FileTest.EXISTS)) {
+                const file = Gio.File.new_for_path(iconPath);
+                const img = new Gtk.Image({ gicon: new Gio.FileIcon({ file }), pixel_size: 16, valign: Gtk.Align.CENTER });
+                row.add_prefix(img);
+            } else {
+                row.icon_name = s.fallbackIcon;
+            }
+            sourcesGroup.add(row);
         });
+
+        // ── Credits ────────────────────────────────────────────────────────────
+
+        const creditsGroup = new Adw.PreferencesGroup({
+            title: 'Credits',
+            margin_top: 12,
+            margin_bottom: 24,
+        });
+        page.add(creditsGroup);
+
+        const creditRow = new Adw.ActionRow({
+            title: 'Inspired by codexbar',
+            subtitle: 'steipete/codexbar — the original macOS AI menu-bar app by Peter Steinberger',
+            icon_name: 'heart-symbolic',
+            activatable: false,
+        });
+        creditsGroup.add(creditRow);
 
         return page;
     }
