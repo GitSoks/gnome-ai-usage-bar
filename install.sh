@@ -2,7 +2,7 @@
 set -e
 
 EXT_UUID="ai-usage-bar@sokolowski.tech"
-ZIP_NAME="${EXT_UUID}-updated.zip"
+ZIP_NAME="${EXT_UUID}.shell-extension.zip"
 
 echo "► Compiling GSettings schema..."
 glib-compile-schemas schemas/
@@ -16,8 +16,7 @@ python3 -m zipfile -c "$ZIP_NAME" \
     stylesheet.css \
     schemas/ \
     lib/ \
-    icons/ \
-    .venv/
+    icons/
 
 echo "► Installing extension..."
 gnome-extensions install --force "$ZIP_NAME"

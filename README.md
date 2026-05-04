@@ -1,64 +1,57 @@
 <div align="center">
-  <img src="icons/logo.svg" width="96" alt="AI Usage Bar Logo">
+  <img src="icons/logo.svg" width="96" alt="AI Usage Bar logo">
   <h1>AI Usage Bar</h1>
-  <p><b>A GNOME Shell extension that shows your remaining AI quota as a live meter in the top panel.</b></p>
-  
-  [![GNOME Shell 45-50](https://img.shields.io/badge/GNOME%20Shell-45%20|%2046%20|%2047%20|%2048%20|%2049%20|%2050-blue.svg)](https://extensions.gnome.org)
-  [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+  <p><b>A GNOME Shell extension that keeps your AI coding quotas visible in the top panel.</b></p>
+
+  [![GNOME Shell 49-50](https://img.shields.io/badge/GNOME%20Shell-49%20%7C%2050-blue.svg)](metadata.json)
+  [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 </div>
 
 <br />
 
-Supports **Claude**, **Gemini**, **Codex (OpenAI)**, **GitHub Copilot**, and **OpenCode** — all at once!
+`AI Usage Bar` tracks remaining quota across **Claude**, **Gemini**, **Codex**, **GitHub Copilot**, and **OpenCode**. It renders the active provider as a compact panel meter, keeps the rest one click away in the popup, and preserves the last known values across GNOME Shell restarts.
 
-Inspired by [codexbar](https://github.com/steipete/codexbar) for macOS.
+Inspired by [codexbar](https://github.com/steipete/codexbar) for macOS, but built natively for GNOME Shell.
 
+> Distributed through GitHub for now. This project is **not** published on extensions.gnome.org yet.
 
 <div align="center">
   <img src="docs/screenshots/screenshot-popup.png" alt="Panel popup showing per-provider quota meters" width="420">
-  &nbsp;&nbsp;
 </div>
 
+## ✨ Highlights
 
----
+- **Compact two-bar panel meter** for the active provider:
+  - **Main bar:** session or primary quota window
+  - **Thin bar:** weekly quota window when the provider exposes one
+- **One-click provider switching** directly from the popup menu
+- **GNOME-native popup details** with per-provider rows, quota bars, reset countdowns, and manual refresh
+- **Automatic refresh** on a schedule and again after resume from suspend
+- **Cached last-known data** so the indicator is still useful right after GNOME Shell restarts
+- **Uses your existing CLI authentication** — no separate dashboard login and no extra account setup inside the extension
 
-## ✨ Features
+## 🔌 Supported providers
 
-- **Live Quota Meter**: A compact two-bar meter on the right side of your panel.
-  - **Tall bar**: Your session window quota.
-  - **Thin hairline bar**: Your weekly window quota.
-- **Color-Coded Status**: Both bars change color as your quota runs low (Green → Amber → Red).
-- **Detailed Popup**: Click the meter to view per-provider detail rows, progress bars, reset countdowns, and a manual refresh button.
-- **Quick Switching**: Switch the active provider directly from the popup without opening preferences.
-- **Smart Refresh**: Automatically refreshes when waking from sleep and optionally polls in the background (1, 2, 5, or 15 mins).
-
-
----
-
-## 🔌 Supported Providers
-
-| Provider | Quota type | Auth method |
-|---|---|---|
-| **Claude** (Anthropic) | 5-hour session + 7-day weekly | `claude` CLI / `~/.claude/.credentials.json` |
-| **Gemini** (Google) | Per-model bucket quota | `gemini` CLI / `~/.gemini/oauth_creds.json` |
-| **Codex** (OpenAI) | 5-hour session + 7-day weekly | `codex` CLI / `~/.codex/auth.json` |
-| **GitHub Copilot** | Premium interactions (monthly) | `gh auth login` / system keyring |
-| **OpenCode** | USD spend (cost-based) | `opencode` CLI / local SQLite DB |
-
----
+| Provider | What it shows | Auth source | Notes |
+|---|---|---|---|
+| **Claude** | 5-hour session + 7-day weekly quota | `claude` CLI / `~/.claude/.credentials.json` | Uses your existing Claude Code auth state |
+| **Gemini** | Per-model quota buckets | `gemini` CLI / `~/.gemini/oauth_creds.json` | Shows the most constrained parsed bucket data |
+| **Codex** | 5-hour session + 7-day weekly quota | `codex` CLI / `~/.codex/auth.json` | Falls back to CLI status parsing when needed |
+| **GitHub Copilot** | Premium request balance | `gh auth login` / GitHub CLI auth state | Balance-style quota, not a 5-hour / 7-day meter |
+| **OpenCode** | Cost mode or Go subscription usage | `opencode` CLI / `~/.local/share/opencode/opencode.db` | Optional live Go quota fetch from the OpenCode web console |
 
 ## 📋 Requirements
 
-- **GNOME Shell 45 – 50**
-- The CLI tool for each provider you want to monitor must be installed and authenticated on your system.
-
----
+- **GNOME Shell 49 or 50**
+- `gnome-extensions` and `glib-compile-schemas` available on your system
+- `python3` for the included install and packaging scripts
+- The CLI tool for each provider you want to monitor must be installed and authenticated locally
 
 ## 🚀 Installation
 
-### Using the install script (Recommended)
+### Quick install from this repository
 
-Clone the repository and run the included `install.sh`:
+Clone the repository and run the included installer:
 
 ```bash
 git clone https://github.com/GitSoks/gnome-ai-usage-bar.git
@@ -66,15 +59,17 @@ cd gnome-ai-usage-bar
 bash install.sh
 ```
 
-The script compiles the GSettings schema, packages the extension, installs it via `gnome-extensions install`, and enables it automatically. On Wayland, if the extension does not appear after installation, log out and back in.
+The installer compiles the GSettings schema, packages the extension, installs it with `gnome-extensions install --force`, and enables it automatically.
 
-To check for errors after installation:
+If you are on Wayland and the extension does not appear immediately, log out and back in.
+
+To inspect GNOME Shell logs after installation:
 
 ```bash
 journalctl /usr/bin/gnome-shell --since='1 min ago' -f
 ```
 
-### Manual installation
+### Manual installation from source
 
 If you prefer to install step by step:
 
@@ -91,21 +86,39 @@ glib-compile-schemas \
 gnome-extensions enable ai-usage-bar@sokolowski.tech
 ```
 
-> **Note:** Log out and log back in (or restart the shell with `Alt+F2` → `r` on X11) if the extension does not appear immediately.
+> On X11 you can usually reload GNOME Shell with `Alt+F2`, then `r`. On Wayland, log out and back in.
 
----
+### Build a release zip
 
-## ⚙️ Provider Setup
+For a GitHub release asset or manual distribution build:
 
-Each provider must be installed and authenticated independently. The extension reads credentials from the same locations the CLI tools use — no separate login is required.
+```bash
+bash package-extension.sh
+```
+
+This creates `ai-usage-bar@sokolowski.tech.shell-extension.zip` in the repository root.
+
+## 🔐 Authentication and privacy
+
+AI Usage Bar does **not** create a separate account or ask you to re-enter provider credentials inside the extension. It reads the same local auth state and data sources that the provider CLIs already use.
+
+- If a provider row says **Not installed**, the CLI was not found at the configured path.
+- If a provider row says **Not authenticated**, run that provider's CLI once and complete its normal login flow.
+- The extension only talks to provider-owned endpoints when that provider requires a network fetch.
+
+## ⚙️ Provider setup
+
+Each provider can be enabled or disabled independently in **Preferences → Providers**.
 
 <details>
 <summary><b>Claude</b></summary>
 
 ```bash
 npm install -g @anthropic-ai/claude-code
-claude   # follow the browser login prompt
+claude
 ```
+
+Complete the normal browser login flow. If you keep Claude credentials in a non-default config directory, set that override in **Preferences → Providers → Claude**.
 </details>
 
 <details>
@@ -113,8 +126,10 @@ claude   # follow the browser login prompt
 
 ```bash
 npm install -g @google/gemini-cli
-gemini   # follow the browser login prompt
+gemini
 ```
+
+Complete the normal browser login flow. The extension reads the CLI OAuth credentials from your local Gemini config.
 </details>
 
 <details>
@@ -122,18 +137,20 @@ gemini   # follow the browser login prompt
 
 ```bash
 npm install -g @openai/codex
-codex    # follow the browser login prompt
+codex
 ```
+
+Complete the normal login flow. If the richer status path is unavailable, AI Usage Bar falls back to the CLI status output where possible.
 </details>
 
 <details>
 <summary><b>GitHub Copilot</b></summary>
 
 ```bash
-# Install the GitHub CLI: https://cli.github.com
 gh auth login
 ```
-*The extension reads the token from the system keyring via `gh auth token`. No additional steps are needed.*
+
+The extension reads the GitHub CLI auth state already present on your machine. No additional Copilot-specific setup is required inside the extension.
 </details>
 
 <details>
@@ -141,50 +158,98 @@ gh auth login
 
 ```bash
 npm install -g opencode-ai
-opencode  # follow the browser login prompt
+opencode
 ```
-*OpenCode is cost-based rather than quota-based. Set optional 5-hour and 7-day budget limits in **Preferences → Providers → OpenCode** to show a remaining-budget bar instead of raw USD figures.*
-</details>
 
----
+OpenCode supports two display styles:
+
+- **Cost mode:** shows rolling spend from the local OpenCode database
+- **Go subscription mode:** shows call-based usage, with optional live web fetch from the OpenCode console
+
+If you configure 5-hour and 7-day budgets in **Preferences → Providers → OpenCode**, the panel shows remaining-budget percentages instead of raw USD values.
+</details>
 
 ## 🛠️ Configuration
 
-Open **Preferences** from the popup menu or from the Extensions app to customize your experience.
-
+Open **Preferences** from the popup menu or from the Extensions app.
 
 <div align="center">
-  <img src="docs/screenshots/screenshot-preferences.png"
-   alt="Panel popup showing per-provider quota meters" width="320">
-  &nbsp;&nbsp;
+  <img src="docs/screenshots/screenshot-preferences.png" alt="Preferences window for AI Usage Bar" width="320">
 </div>
 
+### Providers page
 
-### Providers Settings
-- **Active provider:** Choose which provider's quota drives the main panel bar and icon.
-- **Live Status:** View the last-fetched quota for all providers with a quick refresh button.
-- **Provider Configuration:** Enable/disable individual providers, and override default CLI paths.
+- Choose the **active provider** that drives the panel bar and icon
+- Enable or disable providers individually
+- Override default CLI paths
+- See each provider's live status and last fetched summary directly in the row subtitle
+- Configure OpenCode budgets, Go subscription limits, and optional auto-fetch settings
 
-### Display Settings
-- **Show weekly bar:** Toggle the thin hairline bar below the session bar.
-- **Percentage display:** Show none, session only, weekly only, or both as text next to the bar.
-- **Warning/Critical thresholds:** The bar turns amber or red when remaining quota falls below these percentages (defaults: 50% and 20%).
-- **Refresh interval:** Choose automatic background polling: manual only, 1 min, 2 min, 5 min, or 15 min.
+### Display page
 
----
+- Choose the panel area and position index
+- Show or hide the provider icon and weekly bar
+- Show no text, session text, weekly text, or both next to the bar
+- Adjust the panel bar width
+- Customize warning and critical thresholds
+- Tune the stale-data timeout, startup refresh behavior, and background refresh interval
 
-## 💡 Behavior Notes
+### About page
 
-- ⏳ **Stale data:** If no refresh has happened in the past 30 minutes, the bar renders at reduced opacity to signal the data may be outdated.
-- 💤 **Resume from suspend:** The extension listens for the system sleep signal and refreshes quota automatically 3 seconds after the machine wakes.
-- 💾 **Cache:** The last-known quota is persisted across GNOME Shell restarts via GSettings, so the bar is never blank on startup.
-- 🔄 **Multiple providers:** All enabled providers are polled in parallel. You can watch the full detail for every provider in the popup, regardless of which one is active in the panel.
+- Shows version, project links, author, and license information
 
----
+## 💡 Runtime behavior
+
+- **Stale data dimming:** the panel indicator fades when the cached data is older than the configured timeout
+- **Resume-aware refresh:** the extension refreshes automatically about 3 seconds after the machine wakes from suspend
+- **Startup cache:** the last-known quota is saved in GSettings so the bar is not blank after GNOME Shell restarts
+- **Parallel refreshes:** enabled providers are polled in parallel instead of serially
+- **Quick switching:** click a provider row in the popup to make it the active panel source
+- **Provider-aware weekly bar:** providers without a weekly concept simply omit the thin secondary bar
+
+## 🧪 Testing
+
+This repository includes a live integration script at `tests/test_providers.mjs`.
+
+It checks provider credential detection and parsing against your locally authenticated accounts, so results will vary depending on your subscriptions and current quota state.
+
+Before running it, make sure:
+
+- the relevant provider CLI is installed and logged in
+- the machine has network access for providers that use online APIs
+- you are using a recent Node.js version with `fetch` support
+
+```bash
+node tests/test_providers.mjs
+```
+
+## 🩺 Troubleshooting
+
+- **The extension does not appear after install:** on Wayland, log out and back in; on X11, try `Alt+F2` then `r`.
+- **A provider shows “Not installed”:** verify the CLI is on your `PATH` or set the full executable path in **Preferences → Providers**.
+- **A provider shows “Not authenticated”:** run that CLI manually and complete its normal login flow.
+- **The bar looks stale or dimmed:** use **Refresh Now**, or switch the refresh interval away from **Manual only**.
+- **OpenCode Go auto-fetch fails:** re-check the workspace ID and auth cookie, or disable auto-fetch and use the manual quota settings instead.
+- **Need logs:** run `journalctl /usr/bin/gnome-shell --since='5 min ago' -f` and watch for `AIUsageBar` messages.
+
+## 🗑️ Uninstall
+
+If you installed the extension with the packaged zip or `install.sh`:
+
+```bash
+gnome-extensions disable ai-usage-bar@sokolowski.tech
+gnome-extensions uninstall ai-usage-bar@sokolowski.tech
+```
+
+If you manually cloned the repository into the extensions directory, remove it after disabling:
+
+```bash
+rm -rf ~/.local/share/gnome-shell/extensions/ai-usage-bar@sokolowski.tech
+```
 
 ## 📄 License
 
-This project is licensed under the **GPLv3** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU General Public License v3.0** — see the [LICENSE](LICENSE) file for details.
 
 ## 👨‍💻 Author
 

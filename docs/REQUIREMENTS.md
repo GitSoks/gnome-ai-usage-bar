@@ -11,7 +11,7 @@ This document is the **source of truth** for what the extension must do. Code, s
 
 ## 1. Vision
 
-A GNOME Shell panel indicator that shows, at a glance, **how much AI quota you have left** across the AI coding CLIs you actually use — Codex, Claude, Gemini, Copilot, OpenCode — with a two-bar meter (session window + weekly window) inspired by [steipete/codexbar](https://github.com/steipete/codexbar) on macOS, brought natively to GNOME 45–50.
+A GNOME Shell panel indicator that shows, at a glance, **how much AI quota you have left** across the AI coding CLIs you actually use — Codex, Claude, Gemini, Copilot, OpenCode — with a two-bar meter (session window + weekly window) inspired by [steipete/codexbar](https://github.com/steipete/codexbar) on macOS, brought natively to GNOME 49–50.
 
 It is the read-only dashboard counterpart to `llm-text-pro@sokolowski.tech`, which *uses* these CLIs. This extension *monitors* them.
 
@@ -102,7 +102,7 @@ Top-to-bottom:
 
 ## 8. Non-functional requirements
 
-- **NF1 — GNOME Shell:** 45, 46, 47, 48, 49, 50 (matches `llm-text-pro`).
+- **NF1 — GNOME Shell:** 49, 50 for the v1 GitHub release.
 - **NF2 — Performance:** Idle CPU < 0.1% averaged over 1 minute. A refresh must complete in < 2 s p95 per provider; UI must never block the shell main loop (use async Gio APIs).
 - **NF3 — Memory:** < 30 MB RSS added to `gnome-shell` after 24h.
 - **NF4 — Privacy:** No outbound network requests except to the provider's own documented endpoint. No analytics, no error reporting.
