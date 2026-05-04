@@ -563,9 +563,14 @@ class AIUsageIndicator extends PanelMenu.Button {
         });
         row.add_child(pctLabel);
 
-        if (windowData.resetAt) {
+        const rightParts = [
+            windowData.countText ?? null,
+            windowData.resetAt ? formatResetLabel(windowData.resetAt) : null,
+        ].filter(Boolean);
+
+        if (rightParts.length > 0) {
             const resetLabel = new St.Label({
-                text: formatResetLabel(windowData.resetAt),
+                text: rightParts.join(' · '),
                 style_class: 'aib-bar-reset',
                 x_expand: true,
                 x_align: Clutter.ActorAlign.END,
@@ -831,6 +836,7 @@ class AIUsageIndicator extends PanelMenu.Button {
                     const d = this._cache[id];
                     if (d?.session?.resetAt) d.session.resetAt = new Date(d.session.resetAt);
                     if (d?.weekly?.resetAt)  d.weekly.resetAt  = new Date(d.weekly.resetAt);
+                    if (d?.monthly?.resetAt) d.monthly.resetAt = new Date(d.monthly.resetAt);
                 }
                 // Stale if > 30min
                 this._refreshTs = Object.values(this._cache).reduce((max, v) =>

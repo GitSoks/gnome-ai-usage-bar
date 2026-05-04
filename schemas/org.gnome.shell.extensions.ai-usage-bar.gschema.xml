@@ -51,6 +51,12 @@
       <summary>Path or command name for the Gemini CLI binary</summary>
     </key>
 
+    <key name="gemini-project-id" type="s">
+      <default>''</default>
+      <summary>Cached Cloud AI Companion project ID for the Gemini quota API</summary>
+      <description>Discovered automatically via loadCodeAssist on first fetch; cached here to avoid an extra round-trip on every refresh.</description>
+    </key>
+
     <key name="copilot-cli-path" type="s">
       <default>'copilot'</default>
       <summary>Path or command name for the GitHub Copilot CLI binary</summary>
