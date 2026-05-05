@@ -150,17 +150,17 @@ const PROVIDERS = [
             // ── Go subscription: console credentials (auto-fetch) ─────────────
             const autoFetchRow = makeSwitchRow(
                 'Auto-fetch Go quotas from web',
-                'Fetches real-time usage from console.opencode.ai instead of using local DB + manual quotas',
+                'Reads workspace ID and auth cookie directly from your browser — no manual setup needed',
                 settings, 'opencode-go-auto-fetch'
             );
             expander.add_row(autoFetchRow);
 
-            const workspaceIdRow = makeEntry('Workspace ID (optional)', settings, 'opencode-workspace-id');
-            workspaceIdRow.set_tooltip_text('Optional — found in the URL: opencode.ai/workspace/{id}/go. Only needed for scraping fallback.');
+            const workspaceIdRow = makeEntry('Workspace ID (override)', settings, 'opencode-workspace-id');
+            workspaceIdRow.set_tooltip_text('Auto-detected from browser history. Override only if detection fails — found in the URL: opencode.ai/workspace/{id}/go');
             expander.add_row(workspaceIdRow);
 
-            const authCookieRow = makeEntry('Auth cookie', settings, 'opencode-auth-cookie');
-            authCookieRow.set_tooltip_text('Copy the \'auth\' cookie value from browser DevTools → Application → Cookies → opencode.ai');
+            const authCookieRow = makeEntry('Auth cookie (override)', settings, 'opencode-auth-cookie');
+            authCookieRow.set_tooltip_text('Leave blank — the extension reads this automatically from your browser. Override only if auto-detection fails (copy the \'auth\' cookie from DevTools → Application → Cookies → opencode.ai).');
             expander.add_row(authCookieRow);
 
             // Go subscription mode rows (manual fallback)
@@ -684,7 +684,7 @@ export default class AIUsageBarPrefs extends ExtensionPreferences {
             },
             {
                 title: 'Auto-fetch Go quotas',
-                subtitle: 'Enter your workspace ID and auth cookie to fetch live Go subscription quotas.',
+                subtitle: 'Enable Go Subscription mode and turn on auto-fetch — workspace ID and auth cookie are read automatically from your browser.',
                 icon: 'preferences-system-network-symbolic',
             },
         ].forEach(tip => {
