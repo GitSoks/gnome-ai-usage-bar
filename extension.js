@@ -230,7 +230,7 @@ class AIUsageIndicator extends PanelMenu.Button {
 
         // Panel box: meter + optional provider label
         const panelBox = new St.BoxLayout({
-            vertical: false,
+            orientation: Clutter.Orientation.HORIZONTAL,
             style_class: 'panel-status-indicators-box',
         });
 
@@ -329,9 +329,9 @@ class AIUsageIndicator extends PanelMenu.Button {
     _buildMenu() {
         // Header
         this._headerItem = new PopupMenu.PopupBaseMenuItem({ reactive: false, style_class: 'aib-header-item' });
-        const hBox = new St.BoxLayout({ x_expand: true, vertical: false });
+        const hBox = new St.BoxLayout({ x_expand: true, orientation: Clutter.Orientation.HORIZONTAL });
 
-        const titleBox = new St.BoxLayout({ vertical: true, x_expand: true });
+        const titleBox = new St.BoxLayout({ orientation: Clutter.Orientation.VERTICAL, x_expand: true });
         this._titleLabel = new St.Label({ text: 'AI Usage Bar', style_class: 'aib-title' });
         this._refreshedLabel = new St.Label({ text: 'Last refreshed: never', style_class: 'aib-subtitle' });
         titleBox.add_child(this._titleLabel);
@@ -429,10 +429,10 @@ class AIUsageIndicator extends PanelMenu.Button {
 
     _makeProviderRow(provider, data, isActive, warnThr, critThr) {
         const item = new PopupMenu.PopupBaseMenuItem({ style_class: 'aib-provider-item' });
-        const outer = new St.BoxLayout({ vertical: true, x_expand: true });
+        const outer = new St.BoxLayout({ orientation: Clutter.Orientation.VERTICAL, x_expand: true });
 
         // ── Top row: icon + name + badges ──
-        const topRow = new St.BoxLayout({ vertical: false, x_expand: true });
+        const topRow = new St.BoxLayout({ orientation: Clutter.Orientation.HORIZONTAL, x_expand: true });
 
         // Provider icon (with active indicator via opacity/color)
         const meta = PROVIDER_META[provider.id];
@@ -533,12 +533,12 @@ class AIUsageIndicator extends PanelMenu.Button {
 
     _makeBarRow(windowData, warnThr, critThr) {
         const row = new St.BoxLayout({
-            vertical: false,
+            orientation: Clutter.Orientation.HORIZONTAL,
             x_expand: true,
             style_class: 'aib-bar-row',
         });
 
-        const labelBox = new St.BoxLayout({ vertical: false });
+        const labelBox = new St.BoxLayout({ orientation: Clutter.Orientation.HORIZONTAL });
         const label = new St.Label({
             text: windowData.label ?? 'Session',
             style_class: 'aib-bar-label',
@@ -583,7 +583,7 @@ class AIUsageIndicator extends PanelMenu.Button {
     }
 
     _makeCostRow(cost, tokens, calls) {
-        const row = new St.BoxLayout({ vertical: false, x_expand: true, style_class: 'aib-cost-row' });
+        const row = new St.BoxLayout({ orientation: Clutter.Orientation.HORIZONTAL, x_expand: true, style_class: 'aib-cost-row' });
 
         const fiveHText = `5h: ${formatCost(cost.today ?? 0)}`;
         const weekText  = `week: ${formatCost(cost.week ?? 0)}`;
